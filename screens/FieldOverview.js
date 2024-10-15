@@ -34,15 +34,25 @@ const FieldOverview = () => {
       <Text>Location: {item.location}</Text>
       <Text>Plant Type: {item.plantType}</Text>
       <Text>Area: {item.area} sq m</Text>
+      <Button
+        title="Predict Disease"
+        onPress={() =>
+          navigation.navigate("DiseasePrediction", {
+            fieldId: item.id,
+            location: item.location,
+            plantType: item.plantType,
+          })
+        }
+      />
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Button
+      {/* <Button
         title="Predict Disease"
         onPress={() => navigation.navigate("DiseasePrediction")}
-      />
+      /> */}
       {fields.length > 0 ? (
         <>
           <MapView

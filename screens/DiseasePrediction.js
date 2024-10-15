@@ -2,10 +2,15 @@ import React, { useState } from "react";
 import { View, Text, Button, Image, StyleSheet, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
+import { useNavigation } from "@react-navigation/native";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 
-const DiseasePrediction = () => {
+const DiseasePrediction = ({ route }) => {
   const [image, setImage] = useState(null);
   const [prediction, setPrediction] = useState(null);
+  const navigation = useNavigation();
+  const { fieldId, location, plantType } = route.params;
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -59,18 +64,45 @@ const DiseasePrediction = () => {
       );
 
       setPrediction(response.data);
+      return response.data;
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to predict disease");
     }
   };
 
+  const handlePrediction = async () => {
+    const predictionResult = await predictDisease();
+    if (predictionResult) {
+      const q = query(
+        collection(db, "diseaseQuestions"),
+        where("diseaseName", "==", predictionResult.predicted_disease)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const questions = querySnapshot.docs[0].data().questions;
+        navigation.navigate("FollowUpQuestions", {
+          questions,
+          prediction: predictionResult,
+          image,
+          fieldId,
+          location,
+          plantType,
+        });
+      } else {
+        Alert.alert("Error", "No questions found for this disease");
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <Text>Field: {location}</Text>
+      <Text>Plant Type: {plantType}</Text>
       <Button title="Pick an image from gallery" onPress={pickImage} />
       <Button title="Take a photo" onPress={takePhoto} />
       {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Predict Disease" onPress={predictDisease} />
+      <Button title="Predict Disease" onPress={handlePrediction} />
       {prediction && (
         <View style={styles.predictionContainer}>
           <Text style={styles.predictionText}>
