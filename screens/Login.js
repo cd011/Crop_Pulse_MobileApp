@@ -3,6 +3,7 @@ import { View, TextInput, Button, StyleSheet, Alert } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -11,8 +12,17 @@ const Login = () => {
 
   const handleLogin = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigation.replace("FieldOverview");
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+      await AsyncStorage.setItem(
+        "userData",
+        JSON.stringify({ email: user.email })
+      );
+      navigation.replace("Main");
     } catch (error) {
       Alert.alert("Error", error.message);
     }

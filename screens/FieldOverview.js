@@ -5,9 +5,8 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useNavigation } from "@react-navigation/native";
 
-const FieldOverview = () => {
+const FieldOverview = ({ navigation }) => {
   const [fields, setFields] = useState([]);
-  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchFields = async () => {
@@ -43,6 +42,10 @@ const FieldOverview = () => {
             plantType: item.plantType,
           })
         }
+      />
+      <Button
+        title="View Reports"
+        onPress={() => navigation.navigate("Reports", { fieldId: item.id })}
       />
     </View>
   );
