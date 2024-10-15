@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, Button } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import { useNavigation } from "@react-navigation/native";
 
 const FieldOverview = () => {
   const [fields, setFields] = useState([]);
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchFields = async () => {
@@ -37,6 +39,10 @@ const FieldOverview = () => {
 
   return (
     <View style={styles.container}>
+      <Button
+        title="Predict Disease"
+        onPress={() => navigation.navigate("DiseasePrediction")}
+      />
       {fields.length > 0 ? (
         <>
           <MapView
