@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 
 const PostCommentsScreen = ({ route }) => {
   const { postId } = route.params;

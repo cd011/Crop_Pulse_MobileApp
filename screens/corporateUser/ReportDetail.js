@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { doc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 
 const ReportDetail = ({ route, navigation }) => {
   const { report } = route.params;

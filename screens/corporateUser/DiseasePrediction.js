@@ -4,7 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../../firebase";
 
 const DiseasePrediction = ({ route }) => {
   const [image, setImage] = useState(null);

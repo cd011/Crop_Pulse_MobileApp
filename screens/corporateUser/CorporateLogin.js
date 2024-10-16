@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, TextInput, Button, StyleSheet, Alert } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth } from "../../firebase";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -22,7 +22,7 @@ const CorporateLogin = () => {
         "userData",
         JSON.stringify({ email: user.email })
       );
-      navigation.replace("CorporateMain");
+      navigation.replace("CorporateUserTabs");
     } catch (error) {
       Alert.alert("Error", error.message);
     }

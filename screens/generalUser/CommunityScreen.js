@@ -15,7 +15,7 @@ import {
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 
 const CommunityScreen = ({ navigation }) => {
   const [posts, setPosts] = useState([]);

@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { addDoc, collection } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 
 const FollowUpQuestions = ({ route, navigation }) => {
   const { questions, prediction, image, fieldId, location, plantType } =

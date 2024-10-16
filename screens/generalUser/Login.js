@@ -1,3 +1,5 @@
+//to remove hardcoded login, replace commented part
+
 // import React, { useState } from "react";
 // import {
 //   View,
@@ -8,7 +10,7 @@
 //   Alert,
 // } from "react-native";
 // import { signInWithEmailAndPassword } from "firebase/auth";
-// import { auth, db } from "../firebase";
+// import { auth, db } from "../../firebase";
 // import { doc, getDoc } from "firebase/firestore";
 
 // const Login = ({ navigation }) => {
@@ -111,7 +113,7 @@ import {
   Alert,
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 const Login = ({ navigation }) => {

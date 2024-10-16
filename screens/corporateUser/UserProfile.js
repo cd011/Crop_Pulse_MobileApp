@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
-import { auth } from "../firebase";
+import { auth } from "../../firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const UserProfile = ({ navigation }) => {
@@ -22,7 +22,7 @@ const UserProfile = ({ navigation }) => {
       await AsyncStorage.removeItem("userData");
       navigation.reset({
         index: 0,
-        routes: [{ name: "CorporateLogin" }],
+        routes: [{ name: "Greeting" }],
       });
     } catch (error) {
       console.error("Error logging out:", error);

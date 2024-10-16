@@ -4,7 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { collection, addDoc, where, getDocs } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 
 const PredictionScreen = () => {
   const [image, setImage] = useState(null);

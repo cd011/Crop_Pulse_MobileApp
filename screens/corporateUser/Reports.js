@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 
 const Reports = ({ navigation, route }) => {
   const [reports, setReports] = useState([]);
