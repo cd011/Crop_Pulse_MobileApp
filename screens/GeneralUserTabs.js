@@ -4,11 +4,29 @@ import { Ionicons } from "@expo/vector-icons";
 
 import PredictionScreen from "./PredictionScreen";
 import CommunityScreen from "./CommunityScreen";
+import PostCommentsScreen from "./PostCommentsScreen";
 import ChatbotScreen from "./ChatbotScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import DashboardScreen from "./DashboardScreen";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 const Tab = createBottomTabNavigator();
+const CommunityStack = createNativeStackNavigator();
+
+const CommunityStackScreen = () => (
+  <CommunityStack.Navigator>
+    <CommunityStack.Screen
+      name="CommunityMain"
+      component={CommunityScreen}
+      options={{ headerShown: false }}
+    />
+    <CommunityStack.Screen
+      name="PostCommentsScreen"
+      component={PostCommentsScreen}
+      options={{ title: "Comments" }}
+    />
+  </CommunityStack.Navigator>
+);
 
 const GeneralUserTabs = () => {
   return (
@@ -34,7 +52,11 @@ const GeneralUserTabs = () => {
       })}
     >
       <Tab.Screen name="Prediction" component={PredictionScreen} />
-      <Tab.Screen name="Community" component={CommunityScreen} />
+      <Tab.Screen
+        name="Community"
+        component={CommunityStackScreen}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="Chatbot" component={ChatbotScreen} />
       <Tab.Screen name="Profile" component={UserProfileScreen} />
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
