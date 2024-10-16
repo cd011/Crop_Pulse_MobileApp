@@ -11,6 +11,7 @@ import Reports from "./screens/Reports";
 import ReportDetail from "./screens/ReportDetail";
 import UserProfile from "./screens/UserProfile";
 import GeneralUserAuth from "./screens/GeneralUserAuth";
+import GeneralUserTabs from "./screens/GeneralUserTabs";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -44,7 +45,7 @@ export default function App() {
         <Stack.Screen name="CorporateLogin" component={CorporateLogin} />
         <Stack.Screen name="CorporateMain" component={CorporateTabs} />
         <Stack.Screen name="GeneralUserAuth" component={GeneralUserAuth} />
-        {/* GeneralUserTabs will be added in the next step */}
+        <Stack.Screen name="GeneralUserTabs" component={GeneralUserTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
