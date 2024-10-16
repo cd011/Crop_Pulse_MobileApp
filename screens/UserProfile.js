@@ -22,7 +22,7 @@ const UserProfile = ({ navigation }) => {
       await AsyncStorage.removeItem("userData");
       navigation.reset({
         index: 0,
-        routes: [{ name: "Login" }],
+        routes: [{ name: "CorporateLogin" }],
       });
     } catch (error) {
       console.error("Error logging out:", error);

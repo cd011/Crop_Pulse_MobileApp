@@ -7,34 +7,38 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
-const Login = ({ navigation }) => {
+const SignUp = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleLogin = async () => {
+  const handleSignUp = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords don't match");
+      return;
+    }
+
     try {
-      const userCredential = await signInWithEmailAndPassword(
+      const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
       const user = userCredential.user;
 
-      // Check if the user is a general user
-      const userDoc = await getDoc(doc(db, "generalUsers", user.uid));
-      if (userDoc.exists() && userDoc.data().userType === "general") {
-        navigation.navigate("GeneralUserTabs");
-      } else {
-        Alert.alert(
-          "Error",
-          "This account is not registered as a general user"
-        );
-        await auth.signOut();
-      }
+      // Store additional user data in Firestore
+      await setDoc(doc(db, "generalUsers", user.uid), {
+        email: user.email,
+        userType: "general",
+        createdAt: new Date().toISOString(),
+      });
+
+      Alert.alert("Success", "Account created successfully");
+      navigation.navigate("GeneralUserTabs");
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -42,7 +46,7 @@ const Login = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Create Account</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -58,8 +62,15 @@ const Login = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+      />
+      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+        <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
     </View>
   );
@@ -99,4 +110,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Login;
+export default SignUp;
