@@ -3,12 +3,13 @@ import { View, Text, Button, Image, StyleSheet, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
+import { collection, addDoc, where, getDocs } from "firebase/firestore";
+import { auth, db } from "../firebase";
 
 const PredictionScreen = () => {
   const [image, setImage] = useState(null);
   const [prediction, setPrediction] = useState(null);
+  const navigation = useNavigation();
   // const [plantType, setPlantType] = useState(null);
 
   const pickImage = async () => {
@@ -63,10 +64,30 @@ const PredictionScreen = () => {
       );
 
       setPrediction(response.data);
-      return response.data;
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to predict disease");
+    }
+  };
+
+  const handleSubmit = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        await addDoc(collection(db, "generalUserPredictions"), {
+          userId: user.uid,
+          prediction: prediction.predicted_disease,
+          confidence: prediction.confidence,
+          dateTime: new Date().toISOString(),
+        });
+        Alert.alert("Success", "Report submitted successfully");
+        setImage(null);
+        setPrediction(null);
+        navigation.navigate("Prediction");
+      } catch (error) {
+        console.error("Error submitting report:", error);
+        Alert.alert("Error", "Failed to submit report");
+      }
     }
   };
 
@@ -92,6 +113,9 @@ const PredictionScreen = () => {
           </Text>
         </View>
       )}
+      <View style={styles.button}>
+        <Button title="Save Results" onPress={handleSubmit} />
+      </View>
     </View>
   );
 };
