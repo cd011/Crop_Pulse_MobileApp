@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,45 +8,74 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Markdown from "react-native-markdown-display";
 // import { GEMINI_API_KEY } from "@env";
 
 const API_KEY = "AIzaSyCjLQznlMxxiMWTmXRgaW7KRZs0N3Yd3TU";
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-const ChatbotScreen = () => {
+const ChatbotScreen = ({ route }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
 
-  const sendMessage = useCallback(async () => {
-    if (inputText.trim() === "") return;
-
-    const newMessage = { id: Date.now(), text: inputText, sender: "user" };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    setInputText("");
-
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${inputText}`;
-
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const responseText = response.text();
-
-      const botMessage = { id: Date.now(), text: responseText, sender: "bot" };
-      setMessages((prevMessages) => [...prevMessages, botMessage]);
-    } catch (error) {
-      console.error("Error generating response:", error);
-      const errorMessage = {
-        id: Date.now(),
-        text: "Sorry, I encountered an error. Please try again.",
-        sender: "bot",
-      };
-      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+  useEffect(() => {
+    // Check if there's an initial question from navigation params
+    if (route.params?.initialQuestion) {
+      setInputText(route.params.initialQuestion);
+      // Automatically send the question
+      handleSendMessage(route.params.initialQuestion);
     }
-  }, [inputText]);
+  }, [route.params?.initialQuestion]);
+
+  const handleSendMessage = useCallback(
+    async (text) => {
+      const messageToSend = text || inputText;
+      console.log(
+        "messageToSend type:",
+        typeof messageToSend,
+        "value:",
+        messageToSend
+      );
+      if (messageToSend.trim() === "") return;
+
+      const newMessage = {
+        id: Date.now(),
+        text: messageToSend,
+        sender: "user",
+      };
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      setInputText("");
+
+      try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${messageToSend}`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const responseText = response.text();
+
+        const botMessage = {
+          id: Date.now(),
+          text: responseText,
+          sender: "bot",
+        };
+        setMessages((prevMessages) => [...prevMessages, botMessage]);
+      } catch (error) {
+        console.error("Error generating response:", error);
+        const errorMessage = {
+          id: Date.now(),
+          text: "Sorry, I encountered an error. Please try again.",
+          sender: "bot",
+        };
+        setMessages((prevMessages) => [...prevMessages, errorMessage]);
+      }
+    },
+    [inputText]
+  );
 
   const renderMessage = ({ item }) => (
     <View
@@ -78,7 +107,10 @@ const ChatbotScreen = () => {
           onChangeText={setInputText}
           placeholder="Ask about crop diseases..."
         />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+        <TouchableOpacity
+          style={styles.sendButton}
+          onPress={() => handleSendMessage(inputText)}
+        >
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>

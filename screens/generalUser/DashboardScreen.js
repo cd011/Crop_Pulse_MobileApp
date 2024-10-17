@@ -8,6 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Pressable,
 } from "react-native";
 import {
   collection,
@@ -70,6 +72,8 @@ const DashboardScreen = ({ navigation }) => {
     phosphorus: 0,
     potassium: 0,
   });
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isDialogVisible, setIsDialogVisible] = useState(false);
 
   const WEATHER_API_KEY = "37acc4c53c27446c904205138241610"; // Replace API key with env
 
@@ -211,6 +215,88 @@ const DashboardScreen = ({ navigation }) => {
     });
   };
 
+  const handlePostPress = (post) => {
+    setSelectedPost(post);
+    setIsDialogVisible(true);
+  };
+
+  const handleViewPost = () => {
+    setIsDialogVisible(false);
+    navigation.navigate("Community", {
+      screen: "PostCommentsScreen",
+      params: { postId: selectedPost.id },
+    });
+  };
+
+  const handleAskChatbot = () => {
+    setIsDialogVisible(false);
+    navigation.navigate("Chatbot", {
+      initialQuestion: selectedPost.content,
+    });
+  };
+
+  const PostActionDialog = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={isDialogVisible}
+      onRequestClose={() => setIsDialogVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Post Actions</Text>
+          <Text style={styles.modalText} numberOfLines={3}>
+            {selectedPost?.content}
+          </Text>
+
+          <View style={styles.modalButtons}>
+            <Pressable
+              style={[styles.modalButton, styles.viewPostButton]}
+              onPress={handleViewPost}
+            >
+              <Ionicons name="document-text-outline" size={20} color="white" />
+              <Text style={styles.modalButtonText}>View Post</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.modalButton, styles.askChatbotButton]}
+              onPress={handleAskChatbot}
+            >
+              <Ionicons name="chatbubbles-outline" size={20} color="white" />
+              <Text style={styles.modalButtonText}>Ask Chatbot</Text>
+            </Pressable>
+          </View>
+
+          <Pressable
+            style={styles.closeButton}
+            onPress={() => setIsDialogVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderRecentPosts = () => (
+    <CardSection title="Recent Posts">
+      {recentPosts.length === 0 ? (
+        <Text>No recent posts</Text>
+      ) : (
+        recentPosts.map((post) => (
+          <TouchableOpacity
+            key={post.id}
+            style={styles.listItem}
+            onPress={() => handlePostPress(post)}
+          >
+            <Text numberOfLines={2}>{post.content}</Text>
+            {post.isNew && <View style={styles.newIndicator} />}
+          </TouchableOpacity>
+        ))
+      )}
+    </CardSection>
+  );
+
   const CardSection = ({ title, children }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -288,18 +374,7 @@ const DashboardScreen = ({ navigation }) => {
       </CardSection>
 
       {/* Recent Posts Section */}
-      <CardSection title="Recent Posts">
-        {recentPosts.length === 0 ? (
-          <Text>No recent posts</Text>
-        ) : (
-          recentPosts.map((post) => (
-            <View key={post.id} style={styles.listItem}>
-              <Text numberOfLines={2}>{post.content}</Text>
-              {post.isNew && <View style={styles.newIndicator} />}
-            </View>
-          ))
-        )}
-      </CardSection>
+      {renderRecentPosts()}
 
       {/* Recent Predictions Section */}
       <CardSection title="Recent Predictions">
@@ -325,6 +400,7 @@ const DashboardScreen = ({ navigation }) => {
           <Text>Potassium (K): {fertilizerCalc.potassium}</Text>
         </View>
       </CardSection>
+      <PostActionDialog />
     </ScrollView>
   );
 };
@@ -425,6 +501,69 @@ const styles = StyleSheet.create({
   },
   fertilizerResults: {
     padding: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    width: "80%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginBottom: 15,
+  },
+  modalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderRadius: 10,
+    width: "45%",
+    justifyContent: "center",
+  },
+  viewPostButton: {
+    backgroundColor: "#007AFF",
+  },
+  askChatbotButton: {
+    backgroundColor: "#34C759",
+  },
+  modalButtonText: {
+    color: "white",
+    marginLeft: 5,
+    fontWeight: "bold",
+  },
+  closeButton: {
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: "#666",
+    fontSize: 16,
   },
 });
 
