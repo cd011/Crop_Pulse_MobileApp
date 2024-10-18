@@ -79,14 +79,11 @@ const ChatbotScreen = ({ route, navigation }) => {
         const response = await result.response;
         const responseText = response.text();
 
-        // Calculate word count
-        const wordCount = responseText.trim().split(/\s+/).length;
-
         // Calculate tokens used based on word count ratio (65 tokens for every 100 words)
+        const wordCount = responseText.trim().split(/\s+/).length;
         const tokensUsed = Math.ceil((wordCount * 65) / 100);
-        const currentDate = new Date();
-        const currentTime = currentDate.getTime();
-        // Log current time and tokens used
+        const currentTime = new Date().getTime();
+
         console.log(`Current time (ms since epoch): ${currentTime}`);
         console.log(`Tokens used: ${tokensUsed}`);
 
@@ -127,11 +124,7 @@ const ChatbotScreen = ({ route, navigation }) => {
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
+    <View style={styles.container}>
       <View style={styles.messageListContainer}>
         <FlatList
           ref={flatListRef}
@@ -148,23 +141,25 @@ const ChatbotScreen = ({ route, navigation }) => {
           </View>
         )}
       </View>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Ask about crop diseases..."
-          multiline
-        />
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={() => handleSendMessage(inputText)}
-          disabled={isLoading}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView behavior="height" keyboardVerticalOffset={0}>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Ask about crop diseases..."
+            multiline
+          />
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={() => handleSendMessage(inputText)}
+            disabled={isLoading}
+          >
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
