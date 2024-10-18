@@ -14,15 +14,35 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import Markdown from "react-native-markdown-display";
 // import { GEMINI_API_KEY } from "@env";
 
-const API_KEY = "AIzaSyCjLQznlMxxiMWTmXRgaW7KRZs0N3Yd3TU";
+const API_KEY = "AIzaSyBKKMtjkrp3dJjK70_hCV21OMmXvtLqc2k";
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-const ChatbotScreen = ({ route }) => {
+const ChatbotScreen = ({ route, navigation }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const flatListRef = useRef(null);
+
+  const scrollToBottom = () => {
+    if (flatListRef.current && messages.length > 0) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+  };
 
   useEffect(() => {
+    // Add a "New Chat" button in the navigation header
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => setMessages([])}
+          style={styles.newChatButton}
+        >
+          <Text style={styles.newChatButtonText}>New Chat</Text>
+        </TouchableOpacity>
+      ),
+    });
+
     // Check if there's an initial question from navigation params
     if (route.params?.initialQuestion) {
       setInputText(route.params.initialQuestion);
@@ -31,15 +51,14 @@ const ChatbotScreen = ({ route }) => {
     }
   }, [route.params?.initialQuestion]);
 
+  // Scroll to bottom when new messages are added
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   const handleSendMessage = useCallback(
     async (text) => {
       const messageToSend = text || inputText;
-      console.log(
-        "messageToSend type:",
-        typeof messageToSend,
-        "value:",
-        messageToSend
-      );
       if (messageToSend.trim() === "") return;
 
       const newMessage = {
@@ -49,14 +68,24 @@ const ChatbotScreen = ({ route }) => {
       };
       setMessages((prevMessages) => [...prevMessages, newMessage]);
       setInputText("");
+      setIsLoading(true);
 
       try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${messageToSend}`;
+        const prompt = `Just a test. Reply:Pass ${messageToSend}`;
+        //const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${messageToSend}`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const responseText = response.text();
+
+        // Calculate tokens used based on word count ratio (65 tokens for every 100 words)
+        const wordCount = responseText.trim().split(/\s+/).length;
+        const tokensUsed = Math.ceil((wordCount * 65) / 100);
+        const currentTime = new Date().getTime();
+
+        console.log(`Current time (ms since epoch): ${currentTime}`);
+        console.log(`Tokens used: ${tokensUsed}`);
 
         const botMessage = {
           id: Date.now(),
@@ -72,6 +101,8 @@ const ChatbotScreen = ({ route }) => {
           sender: "bot",
         };
         setMessages((prevMessages) => [...prevMessages, errorMessage]);
+      } finally {
+        setIsLoading(false);
       }
     },
     [inputText]
@@ -84,38 +115,82 @@ const ChatbotScreen = ({ route }) => {
         item.sender === "user" ? styles.userBubble : styles.botBubble,
       ]}
     >
-      <Text style={styles.messageText}>{item.text}</Text>
+      {item.sender === "user" ? (
+        <Text style={styles.messageText}>{item.text}</Text>
+      ) : (
+        <Markdown style={markdownStyles}>{item.text}</Markdown>
+      )}
     </View>
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id.toString()}
-        style={styles.messageList}
-        inverted
-      />
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Ask about crop diseases..."
+    <View style={styles.container}>
+      <View style={styles.messageListContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={[...messages].reverse()}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.messageList}
+          inverted={true}
+          contentContainerStyle={styles.messageListContent}
         />
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={() => handleSendMessage(inputText)}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+          </View>
+        )}
       </View>
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView behavior="height" keyboardVerticalOffset={0}>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Ask about crop diseases..."
+            multiline
+          />
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={() => handleSendMessage(inputText)}
+            disabled={isLoading}
+          >
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
+};
+
+const markdownStyles = {
+  body: {
+    color: "#333",
+  },
+  heading1: {
+    fontSize: 24,
+    marginBottom: 10,
+    fontWeight: "bold",
+  },
+  heading2: {
+    fontSize: 20,
+    marginBottom: 8,
+    fontWeight: "bold",
+  },
+  paragraph: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  link: {
+    color: "#007AFF",
+  },
+  listItem: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  bullet_list: {
+    marginLeft: 20,
+  },
 };
 
 const styles = StyleSheet.create({
@@ -123,15 +198,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F5F5F5",
   },
+  messageListContainer: {
+    flex: 1,
+  },
   messageList: {
     flex: 1,
+  },
+  messageListContent: {
     padding: 10,
+    paddingBottom: 20,
   },
   messageBubble: {
     maxWidth: "80%",
     padding: 10,
     borderRadius: 20,
-    marginBottom: 10,
+    marginVertical: 5,
   },
   userBubble: {
     alignSelf: "flex-end",
@@ -148,6 +229,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 10,
     backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#EEEEEE",
   },
   input: {
     flex: 1,
@@ -158,6 +241,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginRight: 10,
     fontSize: 16,
+    maxHeight: 100,
   },
   sendButton: {
     justifyContent: "center",
@@ -170,6 +254,20 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 20,
+    alignItems: "center",
+  },
+  newChatButton: {
+    marginRight: 15,
+  },
+  newChatButtonText: {
+    color: "#007AFF",
+    fontSize: 16,
   },
 });
 
