@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, Button, Image, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
@@ -93,16 +101,16 @@ const PredictionScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.button}>
-        <Button title="Pick an image from gallery" onPress={pickImage} />
-      </View>
-      <View style={styles.button}>
-        <Button title="Take a photo" onPress={takePhoto} />
-      </View>
+      <TouchableOpacity style={styles.button} onPress={pickImage}>
+        <Text style={styles.buttonText}>Pick an image from gallery</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={takePhoto}>
+        <Text style={styles.buttonText}>Take a photo</Text>
+      </TouchableOpacity>
       {image && <Image source={{ uri: image }} style={styles.image} />}
-      <View style={styles.button}>
-        <Button title="Predict Disease" onPress={predictDisease} />
-      </View>
+      <TouchableOpacity style={styles.button} onPress={predictDisease}>
+        <Text style={styles.buttonText}>Predict Disease</Text>
+      </TouchableOpacity>
       {prediction && (
         <View style={styles.predictionContainer}>
           <Text style={styles.predictionText}>
@@ -113,9 +121,9 @@ const PredictionScreen = () => {
           </Text>
         </View>
       )}
-      <View style={styles.button}>
-        <Button title="Save Results" onPress={handleSubmit} />
-      </View>
+      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>Save Results</Text>
+      </TouchableOpacity>
     </View>
   );
 };
