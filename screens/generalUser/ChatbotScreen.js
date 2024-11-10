@@ -72,8 +72,8 @@ const ChatbotScreen = ({ route, navigation }) => {
 
       try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Just a test. Reply:Pass ${messageToSend}`;
-        //const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${messageToSend}`;
+        // const prompt = `Just a test. Reply:Pass ${messageToSend}`;
+        const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${messageToSend}. Limit your response to less than 50 words. `;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;

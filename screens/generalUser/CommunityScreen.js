@@ -83,7 +83,7 @@ const CommunityScreen = ({ navigation }) => {
           style={styles.input}
           value={newPost}
           onChangeText={setNewPost}
-          placeholder="What's on your mind?"
+          placeholder="Create a new post."
           multiline
         />
         <TouchableOpacity style={styles.addButton} onPress={handleAddPost}>
@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+    paddingTop: 40,
   },
   postList: {
     flex: 1,

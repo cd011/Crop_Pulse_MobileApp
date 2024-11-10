@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
@@ -18,6 +19,7 @@ const PredictionScreen = () => {
   const [image, setImage] = useState(null);
   const [prediction, setPrediction] = useState(null);
   const navigation = useNavigation();
+  const [plantType, setPlantType] = useState("corn"); // Default selection
   // const [plantType, setPlantType] = useState(null);
 
   const pickImage = async () => {
@@ -62,7 +64,7 @@ const PredictionScreen = () => {
 
     try {
       const response = await axios.post(
-        "https://llama-ready-verbally.ngrok-free.app/predict",
+        `https://llama-ready-verbally.ngrok-free.app/predict?plant_type=${plantType}`,
         formData,
         {
           headers: {
@@ -84,6 +86,7 @@ const PredictionScreen = () => {
       try {
         await addDoc(collection(db, "generalUserPredictions"), {
           userId: user.uid,
+          plantType: plantType,
           prediction: prediction.predicted_disease,
           confidence: prediction.confidence,
           dateTime: new Date().toISOString(),
@@ -101,6 +104,19 @@ const PredictionScreen = () => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.pickerContainer}>
+        <Text style={styles.label}>Select Plant Type:</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={plantType}
+            style={styles.picker}
+            onValueChange={(itemValue) => setPlantType(itemValue)}
+          >
+            <Picker.Item label="Corn" value="corn" />
+            <Picker.Item label="Apple" value="apple" />
+          </Picker>
+        </View>
+      </View>
       <TouchableOpacity style={styles.button} onPress={pickImage}>
         <Text style={styles.buttonText}>Pick an image from gallery</Text>
       </TouchableOpacity>
@@ -134,6 +150,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  pickerContainer: {
+    width: "80%",
+    marginBottom: 20,
+  },
+  pickerWrapper: {
+    backgroundColor: "#f0f0f0",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  picker: {
+    width: "100%",
+    height: 50,
   },
   title: {
     fontSize: 24,
