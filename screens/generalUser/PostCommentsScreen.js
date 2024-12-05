@@ -55,10 +55,30 @@ const PostCommentsScreen = ({ route }) => {
     }
   };
 
+  const maskEmail = (email) => {
+    // Split the email into username and domain parts
+    const [username, domain] = email.split("@");
+
+    // Mask the username part (e.g., show only the first character)
+    const maskedUsername = username[0] + "*".repeat(username.length - 1);
+
+    // Optionally, mask part of the domain as well (e.g., show only the first character of the domain)
+    // const domainParts = domain.split(".");
+    // const maskedDomain =
+    //   domainParts[0][0] +
+    //   "*".repeat(domainParts[0].length - 1) +
+    //   "." +
+    //   domainParts[1];
+
+    return `${maskedUsername}@${domain}`;
+  };
+
   const renderComment = ({ item }) => (
     <View style={styles.commentContainer}>
       <Text style={styles.commentContent}>{item.content}</Text>
-      <Text style={styles.commentAuthor}>Posted by: {item.authorEmail}</Text>
+      <Text style={styles.commentAuthor}>
+        Posted by: {maskEmail(item.authorEmail)}
+      </Text>
     </View>
   );
 
@@ -74,7 +94,9 @@ const PostCommentsScreen = ({ route }) => {
     <View style={styles.container}>
       <View style={styles.postContainer}>
         <Text style={styles.postContent}>{post.content}</Text>
-        <Text style={styles.postAuthor}>Posted by: {post.authorEmail}</Text>
+        <Text style={styles.postAuthor}>
+          Posted by: {maskEmail(post.authorEmail)}
+        </Text>
       </View>
       <FlatList
         data={post.comments}
