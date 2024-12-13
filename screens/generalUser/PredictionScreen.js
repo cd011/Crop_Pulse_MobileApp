@@ -16,7 +16,7 @@ import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase";
-import CheckBox from "@react-native-community/checkbox";
+import Checkbox from "expo-checkbox";
 
 const PredictionScreen = () => {
   const [image, setImage] = useState(null);
@@ -203,28 +203,50 @@ const PredictionScreen = () => {
     return followUpQuestions.map((question, index) => (
       <View key={index} style={styles.checkboxContainer}>
         <Text style={styles.questionText}>{question}</Text>
-        <CheckBox
-          title="Yes"
-          checked={followUpAnswers[question] === true}
-          onPress={() =>
-            setFollowUpAnswers((prev) => ({
-              ...prev,
-              [question]: prev[question] === true ? null : true,
-            }))
-          }
-          containerStyle={styles.checkbox}
-        />
-        <CheckBox
-          title="No"
-          checked={followUpAnswers[question] === false}
-          onPress={() =>
-            setFollowUpAnswers((prev) => ({
-              ...prev,
-              [question]: prev[question] === false ? null : false,
-            }))
-          }
-          containerStyle={styles.checkbox}
-        />
+        <View style={styles.checkboxWrapper}>
+          <Checkbox
+            value={followUpAnswers[question] === true}
+            onValueChange={() =>
+              setFollowUpAnswers((prev) => ({
+                ...prev,
+                [question]: prev[question] === true ? null : true,
+              }))
+            }
+            style={styles.checkbox}
+          />
+          <Text
+            onPress={() =>
+              setFollowUpAnswers((prev) => ({
+                ...prev,
+                [question]: prev[question] === true ? null : true,
+              }))
+            }
+          >
+            Yes
+          </Text>
+        </View>
+        <View style={styles.checkboxWrapper}>
+          <Checkbox
+            value={followUpAnswers[question] === false}
+            onValueChange={() =>
+              setFollowUpAnswers((prev) => ({
+                ...prev,
+                [question]: prev[question] === false ? null : false,
+              }))
+            }
+            style={styles.checkbox}
+          />
+          <Text
+            onPress={() =>
+              setFollowUpAnswers((prev) => ({
+                ...prev,
+                [question]: prev[question] === false ? null : false,
+              }))
+            }
+          >
+            No
+          </Text>
+        </View>
       </View>
     ));
   };
@@ -439,13 +461,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  questionText: {
-    flex: 1,
-    marginRight: 10,
+  checkboxWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 10,
   },
   checkbox: {
-    backgroundColor: "transparent",
-    borderWidth: 0,
+    marginRight: 5,
+  },
+  questionText: {
+    flex: 1,
   },
 });
 

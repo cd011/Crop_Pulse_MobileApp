@@ -20,6 +20,7 @@
     "@react-navigation/native-stack": "^6.11.0",
     "axios": "^1.7.7",
     "expo": "^52.0.15",
+    "expo-checkbox": "~4.0.0",
     "expo-image-picker": "~16.0.3",
     "expo-location": "~18.0.3",
     "expo-status-bar": "~2.0.0",
