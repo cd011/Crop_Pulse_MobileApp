@@ -112,8 +112,15 @@ const PredictionScreen = () => {
             style={styles.picker}
             onValueChange={(itemValue) => setPlantType(itemValue)}
           >
-            <Picker.Item label="Corn" value="corn" />
             <Picker.Item label="Apple" value="apple" />
+            <Picker.Item label="Bell pepper" value="bell_pepper" />
+            <Picker.Item label="Cherry" value="cherry" />
+            <Picker.Item label="Corn" value="corn" />
+            <Picker.Item label="Grape" value="grape" />
+            <Picker.Item label="Peach" value="peach" />
+            <Picker.Item label="Potato" value="potato" />
+            <Picker.Item label="strawberry" value="strawberry" />
+            <Picker.Item label="Tomato" value="tomato" />
           </Picker>
         </View>
       </View>
