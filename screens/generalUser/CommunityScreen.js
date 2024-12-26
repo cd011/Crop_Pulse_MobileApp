@@ -55,10 +55,30 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
+  const maskEmail = (email) => {
+    // Split the email into username and domain parts
+    const [username, domain] = email.split("@");
+
+    // Mask the username part (e.g., show only the first character)
+    const maskedUsername = username[0] + "*".repeat(username.length - 1);
+
+    // Optionally, mask part of the domain as well (e.g., show only the first character of the domain)
+    // const domainParts = domain.split(".");
+    // const maskedDomain =
+    //   domainParts[0][0] +
+    //   "*".repeat(domainParts[0].length - 1) +
+    //   "." +
+    //   domainParts[1];
+
+    return `${maskedUsername}@${domain}`;
+  };
+
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <Text style={styles.postContent}>{item.content}</Text>
-      <Text style={styles.postAuthor}>Posted by: {item.authorEmail}</Text>
+      <Text style={styles.postAuthor}>
+        Posted by: {maskEmail(item.authorEmail)}
+      </Text>
       <TouchableOpacity
         style={styles.commentButton}
         onPress={() =>
@@ -83,7 +103,7 @@ const CommunityScreen = ({ navigation }) => {
           style={styles.input}
           value={newPost}
           onChangeText={setNewPost}
-          placeholder="What's on your mind?"
+          placeholder="Create a new post."
           multiline
         />
         <TouchableOpacity style={styles.addButton} onPress={handleAddPost}>
@@ -98,6 +118,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+    paddingTop: 40,
   },
   postList: {
     flex: 1,

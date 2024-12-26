@@ -140,7 +140,10 @@ const Login = ({ navigation }) => {
       // Check if the user is a general user
       const userDoc = await getDoc(doc(db, "generalUsers", user.uid));
       if (userDoc.exists() && userDoc.data().userType === "general") {
-        navigation.navigate("GeneralUserTabs");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "GeneralUserTabs" }],
+        });
       } else {
         Alert.alert(
           "Error",
