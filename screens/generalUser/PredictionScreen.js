@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import Checkbox from "expo-checkbox";
+import { Ionicons } from "@expo/vector-icons";
 
 const PredictionScreen = () => {
   const [image, setImage] = useState(null);
@@ -24,6 +25,8 @@ const PredictionScreen = () => {
   const [isDialogVisible, setIsDialogVisible] = useState(false);
   const [followUpQuestions, setFollowUpQuestions] = useState([]);
   const [followUpAnswers, setFollowUpAnswers] = useState({});
+  const [treatments, setTreatments] = useState([]);
+  const [showTreatments, setShowTreatments] = useState(false);
   const navigation = useNavigation();
   const [plantType, setPlantType] = useState("corn"); // Default selection
   // const [plantType, setPlantType] = useState(null);
@@ -60,7 +63,7 @@ const PredictionScreen = () => {
     try {
       const q = query(
         collection(db, "diseaseFollowUpQuestions"),
-        where("disease", "==", diseaseName.toLowerCase()),
+        where("disease", "==", diseaseName),
         where("plantType", "==", plantType)
       );
 
@@ -101,6 +104,34 @@ const PredictionScreen = () => {
     } catch (error) {
       console.error("Error fetching follow-up questions:", error);
       Alert.alert("Error", "Failed to load follow-up questions");
+    }
+  };
+
+  const areAllQuestionsAnswered = () => {
+    return followUpQuestions.every(
+      (question) =>
+        followUpAnswers[question] !== null &&
+        followUpAnswers[question] !== undefined
+    );
+  };
+
+  const fetchTreatments = async (disease, plantType) => {
+    try {
+      const q = query(
+        collection(db, "treatments"),
+        where("disease", "==", disease),
+        where("plantType", "==", plantType)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const treatmentDoc = querySnapshot.docs[0].data();
+        setTreatments(treatmentDoc.treatment);
+      } else {
+        setTreatments(["No specific treatments found for this disease."]);
+      }
+    } catch (error) {
+      console.error("Error fetching treatments:", error);
+      Alert.alert("Error", "Failed to load treatments");
     }
   };
 
@@ -178,6 +209,48 @@ const PredictionScreen = () => {
     }
   };
 
+  const handleSaveAndTreatments = async () => {
+    if (!areAllQuestionsAnswered()) {
+      Alert.alert("Error", "Please answer all follow-up questions first");
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (user && prediction) {
+      try {
+        // Save prediction results
+        const predictionDoc = await addDoc(
+          collection(db, "generalUserPredictions"),
+          {
+            userId: user.uid,
+            plantType: plantType,
+            prediction: prediction.predicted_disease,
+            confidence: prediction.confidence,
+            dateTime: new Date().toISOString(),
+          }
+        );
+
+        // Save follow-up answers
+        await addDoc(collection(db, "predictionFollowUps"), {
+          predictionId: predictionDoc.id,
+          userId: user.uid,
+          disease: prediction.predicted_disease,
+          plantType: plantType,
+          followUpAnswers: followUpAnswers,
+          confidence: prediction.confidence,
+          dateTime: new Date().toISOString(),
+        });
+
+        // Fetch and show treatments
+        await fetchTreatments(prediction.predicted_disease, plantType);
+        setShowTreatments(true);
+      } catch (error) {
+        console.error("Error submitting report:", error);
+        Alert.alert("Error", "Failed to submit report");
+      }
+    }
+  };
+
   const handleAskChatbot = () => {
     const user = auth.currentUser;
     if (user && prediction) {
@@ -197,6 +270,30 @@ const PredictionScreen = () => {
       navigation.navigate("Chatbot", { initialQuestion: chatPrompt });
       setIsDialogVisible(false);
     }
+  };
+
+  const handleAskCommunity = () => {
+    if (!areAllQuestionsAnswered()) {
+      Alert.alert("Error", "Please answer all follow-up questions first");
+      return;
+    }
+
+    const postContent = `Plant Type: ${plantType}
+  Disease: ${prediction.predicted_disease}
+  Confidence: ${prediction.confidence}%
+  
+  Follow-up Information:
+  ${Object.entries(followUpAnswers)
+    .map(([question, answer]) => `${question}: ${answer ? "Yes" : "No"}`)
+    .join("\n")}
+  
+  I would appreciate any advice or experience with treating this condition.`;
+
+    navigation.navigate("Community", {
+      screen: "CommunityMain", // Changed from CommunityScreen to CommunityMain
+      params: { predefinedPost: postContent },
+    });
+    setIsDialogVisible(false);
   };
 
   const renderFollowUpQuestions = () => {
@@ -253,6 +350,12 @@ const PredictionScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.historyButton}
+        onPress={() => navigation.navigate("PredictionHistory")}
+      >
+        <Ionicons name="time-outline" size={24} color="#007AFF" />
+      </TouchableOpacity>
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Select Plant Type:</Text>
         <View style={styles.pickerWrapper}>
@@ -304,33 +407,83 @@ const PredictionScreen = () => {
               </View>
             )}
 
-            <Text style={styles.followUpTitle}>Follow-up Questions</Text>
-            <ScrollView style={styles.followUpContainer}>
-              {renderFollowUpQuestions()}
-            </ScrollView>
+            {!showTreatments ? (
+              <>
+                <Text style={styles.followUpTitle}>Follow-up Questions</Text>
+                <ScrollView style={styles.followUpContainer}>
+                  {renderFollowUpQuestions()}
+                </ScrollView>
 
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={handleAskChatbot}
-              >
-                <Text style={styles.modalButtonText}>Ask Chatbot</Text>
-              </TouchableOpacity>
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalButton,
+                      !areAllQuestionsAnswered() && styles.disabledButton,
+                    ]}
+                    onPress={handleAskChatbot}
+                    disabled={!areAllQuestionsAnswered()}
+                  >
+                    <Text style={styles.modalButtonText}>Ask Chatbot</Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={handleSubmit}
-              >
-                <Text style={styles.modalButtonText}>Save Results</Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalButton,
+                      !areAllQuestionsAnswered() && styles.disabledButton,
+                    ]}
+                    onPress={handleAskCommunity}
+                    disabled={!areAllQuestionsAnswered()}
+                  >
+                    <Text style={styles.modalButtonText}>Ask Community</Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setIsDialogVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalButton,
+                      !areAllQuestionsAnswered() && styles.disabledButton,
+                    ]}
+                    onPress={handleSaveAndTreatments}
+                    disabled={!areAllQuestionsAnswered()}
+                  >
+                    <Text style={styles.modalButtonText}>
+                      Save and see treatments
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setIsDialogVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.treatmentsTitle}>
+                  Recommended Treatments
+                </Text>
+                <ScrollView style={styles.treatmentsContainer}>
+                  {treatments.map((treatment, index) => (
+                    <Text key={index} style={styles.treatmentText}>
+                      • {treatment}
+                    </Text>
+                  ))}
+                </ScrollView>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={() => {
+                    setShowTreatments(false);
+                    setIsDialogVisible(false);
+                    setImage(null);
+                    setPrediction(null);
+                    navigation.navigate("Prediction");
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Done</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -471,6 +624,33 @@ const styles = StyleSheet.create({
   },
   questionText: {
     flex: 1,
+  },
+  disabledButton: {
+    backgroundColor: "#cccccc",
+    opacity: 0.7,
+  },
+  treatmentsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  treatmentsContainer: {
+    maxHeight: 300,
+    width: "100%",
+    marginBottom: 15,
+  },
+  treatmentText: {
+    fontSize: 16,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  historyButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    padding: 10,
+    zIndex: 1,
   },
 });
 

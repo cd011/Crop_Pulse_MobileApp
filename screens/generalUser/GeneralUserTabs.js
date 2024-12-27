@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
 import PredictionScreen from "./PredictionScreen";
+import PredictionHistoryScreen from "./PredictionHistoryScreen";
 import CommunityScreen from "./CommunityScreen";
 import PostCommentsScreen from "./PostCommentsScreen";
 import ChatbotScreen from "./ChatbotScreen";
@@ -52,6 +53,14 @@ const GeneralUserTabs = () => {
       })}
     >
       <Tab.Screen name="Prediction" component={PredictionScreen} />
+      <Tab.Screen
+        name="PredictionHistory"
+        component={PredictionHistoryScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarVisible: false,
+        }}
+      />
       <Tab.Screen
         name="Community"
         component={CommunityStackScreen}

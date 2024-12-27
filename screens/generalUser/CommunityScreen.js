@@ -17,7 +17,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 
-const CommunityScreen = ({ navigation }) => {
+const CommunityScreen = ({ route, navigation }) => {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
 
@@ -33,6 +33,15 @@ const CommunityScreen = ({ navigation }) => {
 
     return () => unsubscribe();
   }, []);
+
+  // Separate useEffect for handling route params
+  useEffect(() => {
+    if (route.params?.predefinedPost) {
+      setNewPost(route.params.predefinedPost);
+      // Clear the route params to avoid setting the same text again if user navigates back
+      navigation.setParams({ predefinedPost: null });
+    }
+  }, [route.params?.predefinedPost]);
 
   const handleAddPost = async () => {
     if (newPost.trim() === "") {
