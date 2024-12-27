@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import Checkbox from "expo-checkbox";
+import { Ionicons } from "@expo/vector-icons";
 
 const PredictionScreen = () => {
   const [image, setImage] = useState(null);
@@ -349,6 +350,12 @@ const PredictionScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.historyButton}
+        onPress={() => navigation.navigate("PredictionHistory")}
+      >
+        <Ionicons name="time-outline" size={24} color="#007AFF" />
+      </TouchableOpacity>
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Select Plant Type:</Text>
         <View style={styles.pickerWrapper}>
@@ -637,6 +644,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     paddingHorizontal: 10,
+  },
+  historyButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    padding: 10,
+    zIndex: 1,
   },
 });
 
