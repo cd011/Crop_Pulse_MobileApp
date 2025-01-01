@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ScrollView,
 } from "react-native";
 import {
   collection,
@@ -14,12 +15,22 @@ import {
   query,
   orderBy,
   onSnapshot,
+  updateDoc,
+  doc,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
+import { Ionicons } from "@expo/vector-icons";
+
+const PLANT_TAGS = ["apple", "corn", "grape", "potato", "tomato"];
 
 const CommunityScreen = ({ route, navigation }) => {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+  const [filterCriteria, setFilterCriteria] = useState("all"); // all, myPosts, byTag, mostLiked
+  const [selectedTagFilter, setSelectedTagFilter] = useState("");
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -34,11 +45,9 @@ const CommunityScreen = ({ route, navigation }) => {
     return () => unsubscribe();
   }, []);
 
-  // Separate useEffect for handling route params
   useEffect(() => {
     if (route.params?.predefinedPost) {
       setNewPost(route.params.predefinedPost);
-      // Clear the route params to avoid setting the same text again if user navigates back
       navigation.setParams({ predefinedPost: null });
     }
   }, [route.params?.predefinedPost]);
@@ -48,66 +57,245 @@ const CommunityScreen = ({ route, navigation }) => {
       Alert.alert("Error", "Post cannot be empty");
       return;
     }
+    if (!selectedTag) {
+      Alert.alert("Error", "Please select a plant tag");
+      return;
+    }
 
     try {
       await addDoc(collection(db, "posts"), {
         content: newPost,
         authorId: auth.currentUser.uid,
         authorEmail: auth.currentUser.email,
+        authorName: auth.currentUser.displayName || "Anonymous",
+        tag: selectedTag,
         createdAt: new Date().toISOString(),
         comments: [],
+        likes: [],
+        dislikes: [],
       });
       setNewPost("");
+      setSelectedTag("");
     } catch (error) {
       console.error("Error adding post:", error);
       Alert.alert("Error", "Failed to add post");
     }
   };
 
-  const maskEmail = (email) => {
-    // Split the email into username and domain parts
-    const [username, domain] = email.split("@");
+  const handleLikePost = async (postId, likes, dislikes) => {
+    const userId = auth.currentUser.uid;
+    const postRef = doc(db, "posts", postId);
 
-    // Mask the username part (e.g., show only the first character)
-    const maskedUsername = username[0] + "*".repeat(username.length - 1);
+    try {
+      if (likes.includes(userId)) {
+        // Unlike
+        await updateDoc(postRef, {
+          likes: arrayRemove(userId),
+        });
+      } else {
+        // Like and remove from dislikes if present
+        await updateDoc(postRef, {
+          likes: arrayUnion(userId),
+          dislikes: arrayRemove(userId),
+        });
+      }
+    } catch (error) {
+      console.error("Error updating likes:", error);
+    }
+  };
 
-    // Optionally, mask part of the domain as well (e.g., show only the first character of the domain)
-    // const domainParts = domain.split(".");
-    // const maskedDomain =
-    //   domainParts[0][0] +
-    //   "*".repeat(domainParts[0].length - 1) +
-    //   "." +
-    //   domainParts[1];
+  const handleDislikePost = async (postId, likes, dislikes) => {
+    const userId = auth.currentUser.uid;
+    const postRef = doc(db, "posts", postId);
 
-    return `${maskedUsername}@${domain}`;
+    try {
+      if (dislikes.includes(userId)) {
+        // Remove dislike
+        await updateDoc(postRef, {
+          dislikes: arrayRemove(userId),
+        });
+      } else {
+        // Dislike and remove from likes if present
+        await updateDoc(postRef, {
+          dislikes: arrayUnion(userId),
+          likes: arrayRemove(userId),
+        });
+      }
+    } catch (error) {
+      console.error("Error updating dislikes:", error);
+    }
+  };
+
+  const getFilteredPosts = () => {
+    let filteredPosts = [...posts];
+
+    switch (filterCriteria) {
+      case "myPosts":
+        filteredPosts = filteredPosts.filter(
+          (post) => post.authorId === auth.currentUser.uid
+        );
+        break;
+      case "byTag":
+        if (selectedTagFilter) {
+          filteredPosts = filteredPosts.filter(
+            (post) => post.tag === selectedTagFilter
+          );
+        }
+        break;
+      case "mostLiked":
+        filteredPosts.sort(
+          (a, b) => (b.likes?.length || 0) - (a.likes?.length || 0)
+        );
+        break;
+    }
+
+    return filteredPosts;
   };
 
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <Text style={styles.postContent}>{item.content}</Text>
-      <Text style={styles.postAuthor}>
-        Posted by: {maskEmail(item.authorEmail)}
-      </Text>
-      <TouchableOpacity
-        style={styles.commentButton}
-        onPress={() =>
-          navigation.navigate("PostCommentsScreen", { postId: item.id })
-        }
-      >
-        <Text style={styles.commentButtonText}>View Comments</Text>
-      </TouchableOpacity>
+      <View style={styles.tagContainer}>
+        <Text style={styles.tagText}>{item.tag}</Text>
+      </View>
+      <Text style={styles.postAuthor}>Posted by: {item.authorName}</Text>
+      <View style={styles.interactionContainer}>
+        <TouchableOpacity
+          style={styles.interactionButton}
+          onPress={() =>
+            handleLikePost(item.id, item.likes || [], item.dislikes || [])
+          }
+        >
+          <Ionicons
+            name={
+              item.likes?.includes(auth.currentUser.uid)
+                ? "heart"
+                : "heart-outline"
+            }
+            size={24}
+            color={
+              item.likes?.includes(auth.currentUser.uid) ? "#FF6B6B" : "#666"
+            }
+          />
+          <Text style={styles.interactionCount}>{item.likes?.length || 0}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.interactionButton}
+          onPress={() =>
+            handleDislikePost(item.id, item.likes || [], item.dislikes || [])
+          }
+        >
+          <Ionicons
+            name={
+              item.dislikes?.includes(auth.currentUser.uid)
+                ? "thumbs-down"
+                : "thumbs-down-outline"
+            }
+            size={24}
+            color={
+              item.dislikes?.includes(auth.currentUser.uid) ? "#4A90E2" : "#666"
+            }
+          />
+          <Text style={styles.interactionCount}>
+            {item.dislikes?.length || 0}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.commentButton}
+          onPress={() =>
+            navigation.navigate("PostCommentsScreen", { postId: item.id })
+          }
+        >
+          <Text style={styles.commentButtonText}>View Comments</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
+      <ScrollView horizontal style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filterCriteria === "all" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilterCriteria("all")}
+        >
+          <Text style={styles.filterButtonText}>All Posts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filterCriteria === "myPosts" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilterCriteria("myPosts")}
+        >
+          <Text style={styles.filterButtonText}>My Posts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filterCriteria === "mostLiked" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilterCriteria("mostLiked")}
+        >
+          <Text style={styles.filterButtonText}>Most Liked</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filterCriteria === "byTag" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilterCriteria("byTag")}
+        >
+          <Text style={styles.filterButtonText}>Filter by Tag</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {filterCriteria === "byTag" && (
+        <ScrollView horizontal style={styles.tagFilterContainer}>
+          {PLANT_TAGS.map((tag) => (
+            <TouchableOpacity
+              key={tag}
+              style={[
+                styles.tagFilterButton,
+                selectedTagFilter === tag && styles.tagFilterButtonActive,
+              ]}
+              onPress={() => setSelectedTagFilter(tag)}
+            >
+              <Text style={styles.tagFilterButtonText}>{tag}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       <FlatList
-        data={posts}
+        data={getFilteredPosts()}
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
         style={styles.postList}
       />
+
       <View style={styles.inputContainer}>
+        <View style={styles.tagSelectionContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {PLANT_TAGS.map((tag) => (
+              <TouchableOpacity
+                key={tag}
+                style={[
+                  styles.tagButton,
+                  selectedTag === tag && styles.tagButtonActive,
+                ]}
+                onPress={() => setSelectedTag(tag)}
+              >
+                <Text style={styles.tagButtonText}>{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
         <TextInput
           style={styles.input}
           value={newPost}
@@ -129,6 +317,38 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingTop: 40,
   },
+  filterContainer: {
+    flexGrow: 0,
+    marginBottom: 10,
+  },
+  filterButton: {
+    padding: 8,
+    marginRight: 10,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+  },
+  filterButtonActive: {
+    backgroundColor: "#007AFF",
+  },
+  filterButtonText: {
+    color: "#333",
+  },
+  tagFilterContainer: {
+    flexGrow: 0,
+    marginBottom: 10,
+  },
+  tagFilterButton: {
+    padding: 8,
+    marginRight: 10,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+  },
+  tagFilterButtonActive: {
+    backgroundColor: "#28a745",
+  },
+  tagFilterButtonText: {
+    color: "#333",
+  },
   postList: {
     flex: 1,
   },
@@ -143,34 +363,75 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 5,
   },
+  tagContainer: {
+    backgroundColor: "#e8f4f8",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginBottom: 5,
+  },
+  tagText: {
+    color: "#2c88d9",
+    fontSize: 12,
+  },
   postAuthor: {
     fontSize: 12,
     color: "#666",
   },
-  commentButton: {
+  interactionContainer: {
+    flexDirection: "row",
     marginTop: 10,
-    alignSelf: "flex-end",
+    alignItems: "center",
+  },
+  interactionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 15,
+  },
+  interactionCount: {
+    marginLeft: 5,
+    color: "#666",
+  },
+  commentButton: {
+    marginLeft: "auto",
   },
   commentButtonText: {
     color: "#007AFF",
   },
+  tagSelectionContainer: {
+    height: 40,
+    marginBottom: 10,
+  },
+  tagButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    backgroundColor: "#f0f0f0",
+    marginRight: 8,
+  },
+  tagButtonActive: {
+    backgroundColor: "#28a745",
+  },
+  tagButtonText: {
+    color: "#333",
+  },
   inputContainer: {
-    flexDirection: "row",
     padding: 10,
     backgroundColor: "#f0f0f0",
   },
   input: {
-    flex: 1,
     backgroundColor: "#fff",
     borderRadius: 20,
     padding: 10,
-    marginRight: 10,
+    marginBottom: 10,
+    minHeight: 40,
   },
   addButton: {
     backgroundColor: "#007AFF",
     borderRadius: 20,
     padding: 10,
-    justifyContent: "center",
+    alignItems: "center",
   },
   addButtonText: {
     color: "#fff",
