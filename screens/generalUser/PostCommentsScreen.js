@@ -8,13 +8,7 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -22,6 +16,21 @@ const PostCommentsScreen = ({ route }) => {
   const { postId } = route.params;
   const [post, setPost] = useState(null);
   const [newComment, setNewComment] = useState("");
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (auth.currentUser) {
+        const userDoc = await getDoc(
+          doc(db, "generalUsers", auth.currentUser.uid)
+        );
+        if (userDoc.exists()) {
+          setUserName(userDoc.data().name || "Anonymous");
+        }
+      }
+    };
+    fetchUserName();
+  }, []);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -47,7 +56,7 @@ const PostCommentsScreen = ({ route }) => {
         content: newComment,
         authorId: auth.currentUser.uid,
         authorEmail: auth.currentUser.email,
-        authorName: auth.currentUser.displayName || "Anonymous",
+        authorName: userName,
         createdAt: new Date().toISOString(),
         likes: [],
         dislikes: [],
@@ -122,6 +131,45 @@ const PostCommentsScreen = ({ route }) => {
     }
   };
 
+  const handleDeleteComment = (commentIndex, authorId) => {
+    // Check if the current user is the author
+    if (authorId !== auth.currentUser.uid) {
+      Alert.alert("Error", "You can only delete your own comments");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Comment",
+      "Are you sure you want to delete this comment? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const updatedComments = [...post.comments];
+              updatedComments.splice(commentIndex, 1);
+
+              await updateDoc(doc(db, "posts", postId), {
+                comments: updatedComments,
+              });
+
+              setPost({ ...post, comments: updatedComments });
+              Alert.alert("Success", "Comment deleted successfully");
+            } catch (error) {
+              console.error("Error deleting comment:", error);
+              Alert.alert("Error", "Failed to delete comment");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderComment = ({ item, index }) => (
     <View style={styles.commentContainer}>
       <Text style={styles.commentContent}>{item.content}</Text>
@@ -164,6 +212,16 @@ const PostCommentsScreen = ({ route }) => {
             {item.dislikes?.length || 0}
           </Text>
         </TouchableOpacity>
+
+        {/* Delete button - only shown for the author */}
+        {item.authorId === auth.currentUser.uid && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteComment(index, item.authorId)}
+          >
+            <Ionicons name="trash-outline" size={20} color="#FF4444" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -270,6 +328,10 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: "#666",
     fontSize: 12,
+  },
+  deleteButton: {
+    marginLeft: "auto",
+    padding: 5,
   },
   inputContainer: {
     flexDirection: "row",

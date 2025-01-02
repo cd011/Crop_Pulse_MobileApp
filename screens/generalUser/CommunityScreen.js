@@ -19,6 +19,8 @@ import {
   doc,
   arrayUnion,
   arrayRemove,
+  getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +33,22 @@ const CommunityScreen = ({ route, navigation }) => {
   const [selectedTag, setSelectedTag] = useState("");
   const [filterCriteria, setFilterCriteria] = useState("all"); // all, myPosts, byTag, mostLiked
   const [selectedTagFilter, setSelectedTagFilter] = useState("");
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    // Fetch the current user's name when component mounts
+    const fetchUserName = async () => {
+      if (auth.currentUser) {
+        const userDoc = await getDoc(
+          doc(db, "generalUsers", auth.currentUser.uid)
+        );
+        if (userDoc.exists()) {
+          setUserName(userDoc.data().name || "Anonymous");
+        }
+      }
+    };
+    fetchUserName();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -67,7 +85,7 @@ const CommunityScreen = ({ route, navigation }) => {
         content: newPost,
         authorId: auth.currentUser.uid,
         authorEmail: auth.currentUser.email,
-        authorName: auth.currentUser.displayName || "Anonymous",
+        authorName: userName,
         tag: selectedTag,
         createdAt: new Date().toISOString(),
         comments: [],
@@ -152,6 +170,38 @@ const CommunityScreen = ({ route, navigation }) => {
     return filteredPosts;
   };
 
+  const handleDeletePost = (postId, authorId) => {
+    // Check if the current user is the author
+    if (authorId !== auth.currentUser.uid) {
+      Alert.alert("Error", "You can only delete your own posts");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to delete this post? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "posts", postId));
+              Alert.alert("Success", "Post deleted successfully");
+            } catch (error) {
+              console.error("Error deleting post:", error);
+              Alert.alert("Error", "Failed to delete post");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <Text style={styles.postContent}>{item.content}</Text>
@@ -210,6 +260,16 @@ const CommunityScreen = ({ route, navigation }) => {
         >
           <Text style={styles.commentButtonText}>View Comments</Text>
         </TouchableOpacity>
+
+        {/* Delete button - only shown for the author */}
+        {item.authorId === auth.currentUser.uid && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeletePost(item.id, item.authorId)}
+          >
+            <Ionicons name="trash-outline" size={24} color="#FF4444" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -395,6 +455,10 @@ const styles = StyleSheet.create({
   },
   commentButton: {
     marginLeft: "auto",
+  },
+  deleteButton: {
+    marginLeft: "auto",
+    padding: 5,
   },
   commentButtonText: {
     color: "#007AFF",
