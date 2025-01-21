@@ -72,8 +72,14 @@ const DashboardScreen = ({ navigation }) => {
     phosphorus: 0,
     potassium: 0,
   });
+
+  const [selectedPrediction, setSelectedPrediction] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isDialogVisible, setIsDialogVisible] = useState(false);
+  const [isPredictionDialogVisible, setIsPredictionDialogVisible] =
+    useState(false);
+  const [followUpAnswers, setFollowUpAnswers] = useState({});
+  const [treatments, setTreatments] = useState([]);
 
   const WEATHER_API_KEY = "37acc4c53c27446c904205138241610"; // Replace API key with env
 
@@ -297,6 +303,189 @@ const DashboardScreen = ({ navigation }) => {
     </CardSection>
   );
 
+  const handlePredictionPress = async (prediction) => {
+    try {
+      // Fetch follow-up answers for this prediction
+      const followUpsQuery = query(
+        collection(db, "predictionFollowUps"),
+        where("userId", "==", auth.currentUser.uid),
+        where("predictionId", "==", prediction.id)
+      );
+
+      const followUpsSnapshot = await getDocs(followUpsQuery);
+      const followUpData = followUpsSnapshot.docs[0]?.data();
+
+      if (followUpData) {
+        setFollowUpAnswers(followUpData.followUpAnswers);
+      }
+
+      // Fetch treatments
+      const treatmentsQuery = query(
+        collection(db, "treatments"),
+        where("disease", "==", prediction.prediction),
+        where("plantType", "==", prediction.plantType)
+      );
+
+      const treatmentsSnapshot = await getDocs(treatmentsQuery);
+      if (!treatmentsSnapshot.empty) {
+        setTreatments(treatmentsSnapshot.docs[0].data().treatment);
+      } else {
+        setTreatments(["No specific treatments found for this disease."]);
+      }
+
+      setSelectedPrediction(prediction);
+      setIsPredictionDialogVisible(true);
+    } catch (error) {
+      console.error("Error fetching prediction details:", error);
+      Alert.alert("Error", "Failed to load prediction details");
+    }
+  };
+
+  const handleAskChatbotForPrediction = () => {
+    if (selectedPrediction) {
+      const chatPrompt = `I have a ${
+        selectedPrediction.plantType
+      } plant diagnosed with ${selectedPrediction.prediction} (${
+        selectedPrediction.confidence
+      }% confidence). 
+      Can you provide:
+      1. Methods to confirm this diagnosis
+      2. Effective treatment options
+      3. Preventive measures for future occurrences
+
+      Additional context: 
+      - Plant Type: ${selectedPrediction.plantType}
+      - Confidence Level: ${selectedPrediction.confidence}%
+      - Follow-up Answers: ${JSON.stringify(followUpAnswers)}`;
+
+      navigation.navigate("Chatbot", { initialQuestion: chatPrompt });
+      setIsPredictionDialogVisible(false);
+    }
+  };
+
+  const handleAskCommunityForPrediction = () => {
+    if (selectedPrediction) {
+      const postContent = `Plant Type: ${selectedPrediction.plantType}
+Disease: ${selectedPrediction.prediction}
+Confidence: ${selectedPrediction.confidence}%
+
+Follow-up Information:
+${Object.entries(followUpAnswers)
+  .map(([question, answer]) => `${question}: ${answer ? "Yes" : "No"}`)
+  .join("\n")}
+
+I would appreciate any advice or experience with treating this condition.`;
+
+      navigation.navigate("Community", {
+        screen: "CommunityMain",
+        params: { predefinedPost: postContent },
+      });
+      setIsPredictionDialogVisible(false);
+    }
+  };
+
+  const PredictionDialog = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={isPredictionDialogVisible}
+      onRequestClose={() => setIsPredictionDialogVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Prediction Details</Text>
+
+          {selectedPrediction && (
+            <ScrollView style={styles.scrollContainer}>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Diagnosis</Text>
+                <Text>Plant Type: {selectedPrediction.plantType}</Text>
+                <Text>Disease: {selectedPrediction.prediction}</Text>
+                <Text>Confidence: {selectedPrediction.confidence}%</Text>
+                <Text>
+                  Date: {new Date(selectedPrediction.dateTime).toLocaleString()}
+                </Text>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Follow-up Responses</Text>
+                {Object.entries(followUpAnswers).map(
+                  ([question, answer], index) => (
+                    <View key={index} style={styles.followUpItem}>
+                      <Text style={styles.questionText}>{question}</Text>
+                      <Text>Answer: {answer ? "Yes" : "No"}</Text>
+                    </View>
+                  )
+                )}
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Recommended Treatments</Text>
+                {treatments.map((treatment, index) => (
+                  <Text key={index} style={styles.treatmentText}>
+                    • {treatment}
+                  </Text>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+
+          <View style={styles.modalButtons}>
+            <Pressable
+              style={[styles.modalButton, styles.chatbotButton]}
+              onPress={handleAskChatbotForPrediction}
+            >
+              <Ionicons name="chatbubbles-outline" size={20} color="white" />
+              <Text style={styles.modalButtonText}>Ask Chatbot</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.modalButton, styles.communityButton]}
+              onPress={handleAskCommunityForPrediction}
+            >
+              <Ionicons name="people-outline" size={20} color="white" />
+              <Text style={styles.modalButtonText}>Ask Community</Text>
+            </Pressable>
+          </View>
+
+          <Pressable
+            style={styles.closeButton}
+            onPress={() => setIsPredictionDialogVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Update the renderRecentPredictions function
+  const renderRecentPredictions = () => (
+    <CardSection title="Recent Predictions">
+      {recentPredictions.length === 0 ? (
+        <Text>No recent predictions</Text>
+      ) : (
+        recentPredictions.map((prediction) => (
+          <TouchableOpacity
+            key={prediction.id}
+            style={styles.listItem}
+            onPress={() => handlePredictionPress(prediction)}
+          >
+            <View style={styles.predictionContent}>
+              <Text style={styles.predictionType}>
+                Disease: {prediction.prediction}
+              </Text>
+              <Text style={styles.predictionConfidence}>
+                Confidence: {prediction.confidence}%
+              </Text>
+            </View>
+            {prediction.isNew && <View style={styles.newIndicator} />}
+          </TouchableOpacity>
+        ))
+      )}
+    </CardSection>
+  );
+
   const CardSection = ({ title, children }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -377,19 +566,7 @@ const DashboardScreen = ({ navigation }) => {
       {renderRecentPosts()}
 
       {/* Recent Predictions Section */}
-      <CardSection title="Recent Predictions">
-        {recentPredictions.length === 0 ? (
-          <Text>No recent predictions</Text>
-        ) : (
-          recentPredictions.map((prediction) => (
-            <View key={prediction.id} style={styles.listItem}>
-              <Text>Disease: {prediction.prediction}</Text>
-              <Text>Confidence: {prediction.confidence}%</Text>
-              {prediction.isNew && <View style={styles.newIndicator} />}
-            </View>
-          ))
-        )}
-      </CardSection>
+      {renderRecentPredictions()}
 
       {/* Fertilizer Calculator Section */}
       <CardSection title="Fertilizer Calculator">
@@ -401,6 +578,7 @@ const DashboardScreen = ({ navigation }) => {
         </View>
       </CardSection>
       <PostActionDialog />
+      <PredictionDialog />
     </ScrollView>
   );
 };
@@ -564,6 +742,47 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "#666",
     fontSize: 16,
+  },
+  predictionContent: {
+    flex: 1,
+  },
+  predictionType: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  predictionConfidence: {
+    fontSize: 14,
+    color: "#666",
+  },
+  section: {
+    marginBottom: 20,
+    width: "100%",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  followUpItem: {
+    marginBottom: 10,
+  },
+  questionText: {
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  treatmentText: {
+    marginBottom: 6,
+    paddingLeft: 10,
+  },
+  scrollContainer: {
+    maxHeight: 400,
+    width: "100%",
+  },
+  chatbotButton: {
+    backgroundColor: "#34C759",
+  },
+  communityButton: {
+    backgroundColor: "#007AFF",
   },
 });
 
