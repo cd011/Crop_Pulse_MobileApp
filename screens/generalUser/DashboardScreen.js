@@ -24,6 +24,7 @@ import {
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
 import FertilizerCalculator from "./FertilizerCalculator";
+import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
 
 // Weather condition to icon mapping
 const getWeatherIcon = (condition) => {
@@ -37,22 +38,43 @@ const getWeatherIcon = (condition) => {
     1006: "cloud",
     1009: "cloudy",
     // Rain
-    1063: "rainy",
-    1180: "rainy",
-    1183: "rainy",
-    1186: "rainy",
-    1189: "rainy",
-    1192: "rainy",
-    1195: "rainy",
+    1063: "rainy", // Patchy rain
+    1150: "rainy", // Patchy light drizzle
+    1153: "rainy", // Light drizzle
+    1168: "rainy", // Freezing drizzle
+    1171: "rainy", // Heavy freezing drizzle
+    1180: "rainy", // Patchy light rain
+    1183: "rainy", // Light rain
+    1186: "rainy", // Moderate rain
+    1189: "rainy", // Moderate rain
+    1192: "rainy", // Heavy rain
+    1195: "rainy", // Heavy rain
+    1198: "rainy", // Light freezing rain
+    1201: "rainy", // Moderate/heavy freezing rain
     // Thunder
     1087: "thunderstorm",
+    1273: "thunderstorm", // Patchy light rain with thunder
+    1276: "thunderstorm", // Moderate/heavy rain with thunder
+    1279: "thunderstorm", // Patchy light snow with thunder
+    1282: "thunderstorm", // Moderate/heavy snow with thunder
     // Snow
     1114: "snow",
     1210: "snow",
     1213: "snow",
     1216: "snow",
-    // Mist
-    1030: "water",
+    1219: "snow", // Moderate snow
+    1222: "snow", // Patchy heavy snow
+    1225: "snow", // Heavy snow
+    1237: "snow", // Ice pellets
+    // Mist/Fog
+    1030: "water", // Mist
+    1135: "water", // Fog
+    1147: "water", // Freezing fog
+    // Sleet
+    1069: "snow", // Patchy sleet
+    1072: "snow", // Patchy freezing drizzle
+    1204: "snow", // Light sleet
+    1207: "snow", // Moderate/heavy sleet
     // Default
     default: "help-circle-outline",
   };
@@ -319,46 +341,33 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
+  const { handleAskChat, handleAskCommunity } = useCommunityAndChatbot();
+
   const handleAskChatbotForPrediction = () => {
     if (selectedPrediction) {
-      const chatPrompt = `I have a ${
-        selectedPrediction.plantType
-      } plant diagnosed with ${selectedPrediction.prediction} (${
-        selectedPrediction.confidence
-      }% confidence). 
-      Can you provide:
-      1. Methods to confirm this diagnosis
-      2. Effective treatment options
-      3. Preventive measures for future occurrences
-
-      Additional context: 
-      - Plant Type: ${selectedPrediction.plantType}
-      - Confidence Level: ${selectedPrediction.confidence}%
-      - Follow-up Answers: ${JSON.stringify(followUpAnswers)}`;
-
-      navigation.navigate("Chatbot", { initialQuestion: chatPrompt });
-      setIsPredictionDialogVisible(false);
+      const success = handleAskChat({
+        plantType: selectedPrediction.plantType,
+        disease: selectedPrediction.prediction,
+        confidence: selectedPrediction.confidence,
+        followUpAnswers: followUpAnswers,
+      });
+      if (success) {
+        setIsPredictionDialogVisible(false);
+      }
     }
   };
 
   const handleAskCommunityForPrediction = () => {
     if (selectedPrediction) {
-      const postContent = `Plant Type: ${selectedPrediction.plantType}
-Disease: ${selectedPrediction.prediction}
-Confidence: ${selectedPrediction.confidence}%
-
-Follow-up Information:
-${Object.entries(followUpAnswers)
-  .map(([question, answer]) => `${question}: ${answer ? "Yes" : "No"}`)
-  .join("\n")}
-
-I would appreciate any advice or experience with treating this condition.`;
-
-      navigation.navigate("Community", {
-        screen: "CommunityMain",
-        params: { predefinedPost: postContent },
+      const success = handleAskCommunity({
+        plantType: selectedPrediction.plantType,
+        disease: selectedPrediction.prediction,
+        confidence: selectedPrediction.confidence,
+        followUpAnswers: followUpAnswers,
       });
-      setIsPredictionDialogVisible(false);
+      if (success) {
+        setIsPredictionDialogVisible(false);
+      }
     }
   };
 
