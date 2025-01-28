@@ -9,9 +9,11 @@ import {
   Alert,
   Modal,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
@@ -19,6 +21,8 @@ import { auth, db } from "../../firebase";
 import Checkbox from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
 import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
+
+const MAX_IMAGE_SIZE = 1024 * 1024;
 
 const PredictionScreen = () => {
   const [image, setImage] = useState(null);
@@ -28,9 +32,42 @@ const PredictionScreen = () => {
   const [followUpAnswers, setFollowUpAnswers] = useState({});
   const [treatments, setTreatments] = useState([]);
   const [showTreatments, setShowTreatments] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const [plantType, setPlantType] = useState("corn"); // Default selection
-  // const [plantType, setPlantType] = useState(null);
+  const [plantType, setPlantType] = useState("corn");
+
+  const resetForm = () => {
+    setImage(null);
+    setPrediction(null);
+    setFollowUpQuestions([]);
+    setFollowUpAnswers({});
+    setTreatments([]);
+    setShowTreatments(false);
+    setPlantType("corn");
+  };
+
+  const compressImage = async (uri) => {
+    try {
+      // First, get the image info to check its size
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const fileSize = blob.size;
+
+      if (fileSize > MAX_IMAGE_SIZE) {
+        // Calculate compression quality (50% for images > 1MB)
+        const manipResult = await ImageManipulator.manipulateAsync(
+          uri,
+          [{ resize: { width: 1024 } }], // Resize to max width of 1024px
+          { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        return manipResult.uri;
+      }
+      return uri;
+    } catch (error) {
+      console.error("Error compressing image:", error);
+      return uri;
+    }
+  };
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -41,7 +78,8 @@ const PredictionScreen = () => {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      const compressedUri = await compressImage(result.assets[0].uri);
+      setImage(compressedUri);
       setPrediction(null);
     }
   };
@@ -50,11 +88,12 @@ const PredictionScreen = () => {
     let result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7, // Reduced initial quality for camera
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      const compressedUri = await compressImage(result.assets[0].uri);
+      setImage(compressedUri);
       setPrediction(null);
     }
   };
@@ -142,6 +181,7 @@ const PredictionScreen = () => {
       return;
     }
 
+    setIsLoading(true);
     const formData = new FormData();
     formData.append("file", {
       uri: image,
@@ -168,6 +208,8 @@ const PredictionScreen = () => {
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to predict disease");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -250,6 +292,7 @@ const PredictionScreen = () => {
         Alert.alert("Error", "Failed to submit report");
       }
     }
+    resetForm();
   };
 
   const { handleAskChat, handleAskCommunity } = useCommunityAndChatbot();
