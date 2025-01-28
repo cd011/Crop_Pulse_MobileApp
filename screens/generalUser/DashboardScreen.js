@@ -23,6 +23,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
+import FertilizerCalculator from "./FertilizerCalculator";
 
 // Weather condition to icon mapping
 const getWeatherIcon = (condition) => {
@@ -67,12 +68,6 @@ const DashboardScreen = ({ navigation }) => {
   const [forecast, setForecast] = useState(null);
   const [recentPosts, setRecentPosts] = useState([]);
   const [recentPredictions, setRecentPredictions] = useState([]);
-  const [fertilizerCalc, setFertilizerCalc] = useState({
-    nitrogen: 0,
-    phosphorus: 0,
-    potassium: 0,
-  });
-
   const [selectedPrediction, setSelectedPrediction] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isDialogVisible, setIsDialogVisible] = useState(false);
@@ -202,23 +197,6 @@ const DashboardScreen = ({ navigation }) => {
         new Date(Date.now() - 24 * 60 * 60 * 1000),
     }));
     setRecentPredictions(predictionsData);
-  };
-
-  const calculateFertilizer = (area, cropType) => {
-    // This is a simplified calculation - you should implement proper calculations based on crop requirements
-    const baseRates = {
-      rice: { n: 120, p: 60, k: 60 },
-      wheat: { n: 100, p: 50, k: 50 },
-      corn: { n: 140, p: 70, k: 70 },
-      default: { n: 100, p: 50, k: 50 },
-    };
-
-    const rates = baseRates[cropType] || baseRates.default;
-    setFertilizerCalc({
-      nitrogen: ((rates.n * area) / 10000).toFixed(2),
-      phosphorus: ((rates.p * area) / 10000).toFixed(2),
-      potassium: ((rates.k * area) / 10000).toFixed(2),
-    });
   };
 
   const handlePostPress = (post) => {
@@ -570,12 +548,7 @@ I would appreciate any advice or experience with treating this condition.`;
 
       {/* Fertilizer Calculator Section */}
       <CardSection title="Fertilizer Calculator">
-        <View style={styles.fertilizerResults}>
-          <Text>Recommended Application (kg/ha):</Text>
-          <Text>Nitrogen (N): {fertilizerCalc.nitrogen}</Text>
-          <Text>Phosphorus (P): {fertilizerCalc.phosphorus}</Text>
-          <Text>Potassium (K): {fertilizerCalc.potassium}</Text>
-        </View>
+        <FertilizerCalculator />
       </CardSection>
       <PostActionDialog />
       <PredictionDialog />
