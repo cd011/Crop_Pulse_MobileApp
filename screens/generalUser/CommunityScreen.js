@@ -25,7 +25,17 @@ import {
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
 
-const PLANT_TAGS = ["apple", "corn", "grape", "potato", "tomato"];
+const PLANT_TAGS = [
+  "Apple",
+  "Bell pepper",
+  "Cherry",
+  "Corn",
+  "Grape",
+  "Peach",
+  "Potato",
+  "Strawberry",
+  "Tomato",
+];
 
 const CommunityScreen = ({ route, navigation }) => {
   const [posts, setPosts] = useState([]);

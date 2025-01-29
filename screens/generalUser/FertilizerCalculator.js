@@ -97,6 +97,12 @@ const FertilizerCalculator = () => {
     });
   };
 
+  const resetFields = () => {
+    setSelectedCrop("");
+    setArea("");
+    setResults(null);
+  };
+
   const handleSaveRatio = async () => {
     if (!results || !selectedCrop || !area) return;
 
@@ -131,6 +137,8 @@ const FertilizerCalculator = () => {
 
       await fetchSavedRatios();
       Alert.alert("Success", "Fertilizer ratio saved successfully");
+      resetFields();
+      setModalVisible(false);
     } catch (error) {
       console.error("Error saving ratio:", error);
       Alert.alert("Error", "Failed to save fertilizer ratio");
@@ -140,14 +148,25 @@ const FertilizerCalculator = () => {
   };
 
   const handleDeleteRatio = async (ratioId) => {
-    try {
-      await deleteDoc(doc(db, "fertilizerRatios", ratioId));
-      await fetchSavedRatios();
-      Alert.alert("Success", "Fertilizer ratio deleted successfully");
-    } catch (error) {
-      console.error("Error deleting ratio:", error);
-      Alert.alert("Error", "Failed to delete fertilizer ratio");
-    }
+    Alert.alert("Delete Ratio", "Are you sure you want to delete this ratio?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "fertilizerRatios", ratioId));
+            setSavedRatios((prevRatios) =>
+              prevRatios.filter((ratio) => ratio.id !== ratioId)
+            );
+            Alert.alert("Success", "Fertilizer ratio deleted successfully");
+          } catch (error) {
+            console.error("Error deleting ratio:", error);
+            Alert.alert("Error", "Failed to delete fertilizer ratio");
+          }
+        },
+      },
+    ]);
   };
 
   const renderSavedRatios = () => {
@@ -286,7 +305,10 @@ const FertilizerCalculator = () => {
 
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  resetFields();
+                  setModalVisible(false);
+                }}
               >
                 <Text style={styles.closeButtonText}>Close</Text>
               </TouchableOpacity>
@@ -322,9 +344,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 8,
   },
-  savedRatiosScroll: {
-    maxHeight: 200,
-  },
+  savedRatiosScroll: {},
   savedRatioCard: {
     backgroundColor: "#f5f5f5",
     padding: 12,

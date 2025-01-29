@@ -34,7 +34,7 @@ const PredictionScreen = () => {
   const [showTreatments, setShowTreatments] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const [plantType, setPlantType] = useState("corn");
+  const [plantType, setPlantType] = useState(null);
 
   const resetForm = () => {
     setImage(null);
@@ -43,7 +43,7 @@ const PredictionScreen = () => {
     setFollowUpAnswers({});
     setTreatments([]);
     setShowTreatments(false);
-    setPlantType("corn");
+    setPlantType(null);
   };
 
   const compressImage = async (uri) => {
@@ -292,7 +292,6 @@ const PredictionScreen = () => {
         Alert.alert("Error", "Failed to submit report");
       }
     }
-    resetForm();
   };
 
   const { handleAskChat, handleAskCommunity } = useCommunityAndChatbot();
@@ -307,6 +306,7 @@ const PredictionScreen = () => {
         followUpAnswers: followUpAnswers,
       });
       if (success) {
+        resetForm();
         setIsDialogVisible(false);
       }
     }
@@ -325,6 +325,7 @@ const PredictionScreen = () => {
       followUpAnswers: followUpAnswers,
     });
     if (success) {
+      resetForm();
       setIsDialogVisible(false);
     }
   };
@@ -485,7 +486,10 @@ const PredictionScreen = () => {
 
                   <TouchableOpacity
                     style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setIsDialogVisible(false)}
+                    onPress={() => {
+                      resetForm();
+                      setIsDialogVisible(false);
+                    }}
                   >
                     <Text style={styles.modalButtonText}>Cancel</Text>
                   </TouchableOpacity>
@@ -506,11 +510,8 @@ const PredictionScreen = () => {
                 <TouchableOpacity
                   style={styles.modalButton}
                   onPress={() => {
-                    setShowTreatments(false);
+                    resetForm();
                     setIsDialogVisible(false);
-                    setImage(null);
-                    setPrediction(null);
-                    navigation.navigate("Prediction");
                   }}
                 >
                   <Text style={styles.modalButtonText}>Done</Text>
