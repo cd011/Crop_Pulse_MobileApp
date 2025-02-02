@@ -25,6 +25,7 @@ const ChatbotScreen = ({ route, navigation }) => {
   const flatListRef = useRef(null);
   const isInitialMount = useRef(true);
   const previousQuestionRef = useRef("");
+  const chatHistoryRef = useRef(null);
 
   const scrollToBottom = () => {
     if (flatListRef.current && messages.length > 0) {
@@ -53,6 +54,7 @@ const ChatbotScreen = ({ route, navigation }) => {
           onPress={() => {
             previousQuestionRef.current = "";
             setMessages([]);
+            chatHistoryRef.current = null;
             const welcomeMessage = {
               id: Date.now(),
               text: "Hello! I'm your farming assistant, specialized in helping with crop diseases and plant health. How can I help you today?",
@@ -119,10 +121,20 @@ const ChatbotScreen = ({ route, navigation }) => {
 
       try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        if (!chatHistoryRef.current) {
+          chatHistoryRef.current = model.startChat({
+            generationConfig: {
+              maxOutputTokens: 1000,
+            },
+          });
+        }
+
         // const prompt = `Just a test. Reply:Pass ${messageToSend}`;
         const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${messageToSend}. Limit your response to less than 50 words. `;
 
-        const result = await model.generateContent(prompt);
+        //const result = await model.generateContent(prompt);
+        const result = await chatHistoryRef.current.sendMessage(prompt);
         const response = await result.response;
         const responseText = response.text();
 
