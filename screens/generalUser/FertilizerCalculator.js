@@ -31,6 +31,8 @@ const FertilizerCalculator = () => {
   const [results, setResults] = useState(null);
   const [savedRatios, setSavedRatios] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isSavedRatiosModalVisible, setSavedRatiosModalVisible] =
+    useState(false);
 
   const crops = [
     { value: "apple", label: "Apple" },
@@ -212,12 +214,13 @@ const FertilizerCalculator = () => {
         <Text style={styles.openButtonText}>Open Fertilizer Calculator</Text>
       </TouchableOpacity>
 
-      <View style={styles.savedRatiosContainer}>
-        <Text style={styles.savedRatiosTitle}>Saved Fertilizer Ratios</Text>
-        <ScrollView style={styles.savedRatiosScroll}>
-          {renderSavedRatios()}
-        </ScrollView>
-      </View>
+      <TouchableOpacity
+        style={styles.savedRatiosButton}
+        onPress={() => setSavedRatiosModalVisible(true)}
+      >
+        <Ionicons name="list-outline" size={24} color="white" />
+        <Text style={styles.savedRatiosButtonText}>Saved Ratios</Text>
+      </TouchableOpacity>
 
       <Modal
         animationType="slide"
@@ -316,6 +319,60 @@ const FertilizerCalculator = () => {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isSavedRatiosModalVisible}
+        onRequestClose={() => setSavedRatiosModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Saved Fertilizer Ratios</Text>
+            <ScrollView style={styles.savedRatiosScroll}>
+              {savedRatios.length === 0 ? (
+                <Text style={styles.noRatiosText}>
+                  No saved fertilizer ratios
+                </Text>
+              ) : (
+                savedRatios.map((ratio) => (
+                  <View key={ratio.id} style={styles.savedRatioCard}>
+                    <View style={styles.savedRatioHeader}>
+                      <Text style={styles.savedRatioCrop}>
+                        {crops.find((c) => c.value === ratio.crop)?.label ||
+                          ratio.crop}
+                      </Text>
+                      <Text style={styles.savedRatioDate}>
+                        {new Date(ratio.createdAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <Text style={styles.savedRatioArea}>
+                      Area: {ratio.area} m²
+                    </Text>
+                    <View style={styles.savedRatioValues}>
+                      <Text>N: {ratio.nitrogen} kg</Text>
+                      <Text>P: {ratio.phosphorus} kg</Text>
+                      <Text>K: {ratio.potassium} kg</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteRatio(ratio.id)}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="red" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSavedRatiosModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -347,7 +404,7 @@ const styles = StyleSheet.create({
   savedRatiosScroll: {},
   savedRatioCard: {
     backgroundColor: "#f5f5f5",
-    padding: 12,
+    padding: 16,
     borderRadius: 8,
     marginBottom: 8,
     position: "relative",
@@ -474,6 +531,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 16,
   },
   closeButtonText: {
     fontSize: 16,
@@ -481,8 +539,23 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     position: "absolute",
-    right: 10,
-    top: 10,
+    right: 12,
+    top: 12,
+  },
+  savedRatiosButton: {
+    backgroundColor: "#34C759",
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  savedRatiosButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
   },
 });
 
