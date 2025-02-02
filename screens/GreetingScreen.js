@@ -5,13 +5,6 @@ const GreetingScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to CropPulse</Text>
-      <Text style={styles.subtitle}>Please select your user type:</Text>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("CorporateLogin")}
-      >
-        <Text style={styles.buttonText}>Corporate User</Text>
-      </TouchableOpacity>
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("GeneralUserAuth")}
@@ -34,10 +27,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 20,
   },
-  subtitle: {
-    fontSize: 18,
-    marginBottom: 30,
-  },
+
   button: {
     backgroundColor: "#007AFF",
     padding: 15,
