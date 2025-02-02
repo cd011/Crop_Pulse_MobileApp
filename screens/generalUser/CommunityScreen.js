@@ -25,7 +25,17 @@ import {
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
 
-const PLANT_TAGS = ["apple", "corn", "grape", "potato", "tomato"];
+const PLANT_TAGS = [
+  "Apple",
+  "Bell pepper",
+  "Cherry",
+  "Corn",
+  "Grape",
+  "Peach",
+  "Potato",
+  "Strawberry",
+  "Tomato",
+];
 
 const CommunityScreen = ({ route, navigation }) => {
   const [posts, setPosts] = useState([]);
@@ -258,8 +268,21 @@ const CommunityScreen = ({ route, navigation }) => {
             navigation.navigate("PostCommentsScreen", { postId: item.id })
           }
         >
-          <Text style={styles.commentButtonText}>View Comments</Text>
+          <Ionicons name="chatbubbles-outline" size={24} color="#0e2cc4" />
         </TouchableOpacity>
+
+        {item.authorId === auth.currentUser.uid && (
+          <TouchableOpacity
+            style={styles.commentButton}
+            onPress={() =>
+              navigation.navigate("Chatbot", {
+                initialQuestion: item.content,
+              })
+            }
+          >
+            <Text style={styles.commentButtonText}>Ask Chatbot</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Delete button - only shown for the author */}
         {item.authorId === auth.currentUser.uid && (

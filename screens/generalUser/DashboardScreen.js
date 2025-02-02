@@ -23,6 +23,8 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
+import FertilizerCalculator from "./FertilizerCalculator";
+import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
 
 // Weather condition to icon mapping
 const getWeatherIcon = (condition) => {
@@ -36,22 +38,43 @@ const getWeatherIcon = (condition) => {
     1006: "cloud",
     1009: "cloudy",
     // Rain
-    1063: "rainy",
-    1180: "rainy",
-    1183: "rainy",
-    1186: "rainy",
-    1189: "rainy",
-    1192: "rainy",
-    1195: "rainy",
+    1063: "rainy", // Patchy rain
+    1150: "rainy", // Patchy light drizzle
+    1153: "rainy", // Light drizzle
+    1168: "rainy", // Freezing drizzle
+    1171: "rainy", // Heavy freezing drizzle
+    1180: "rainy", // Patchy light rain
+    1183: "rainy", // Light rain
+    1186: "rainy", // Moderate rain
+    1189: "rainy", // Moderate rain
+    1192: "rainy", // Heavy rain
+    1195: "rainy", // Heavy rain
+    1198: "rainy", // Light freezing rain
+    1201: "rainy", // Moderate/heavy freezing rain
     // Thunder
     1087: "thunderstorm",
+    1273: "thunderstorm", // Patchy light rain with thunder
+    1276: "thunderstorm", // Moderate/heavy rain with thunder
+    1279: "thunderstorm", // Patchy light snow with thunder
+    1282: "thunderstorm", // Moderate/heavy snow with thunder
     // Snow
     1114: "snow",
     1210: "snow",
     1213: "snow",
     1216: "snow",
-    // Mist
-    1030: "water",
+    1219: "snow", // Moderate snow
+    1222: "snow", // Patchy heavy snow
+    1225: "snow", // Heavy snow
+    1237: "snow", // Ice pellets
+    // Mist/Fog
+    1030: "water", // Mist
+    1135: "water", // Fog
+    1147: "water", // Freezing fog
+    // Sleet
+    1069: "snow", // Patchy sleet
+    1072: "snow", // Patchy freezing drizzle
+    1204: "snow", // Light sleet
+    1207: "snow", // Moderate/heavy sleet
     // Default
     default: "help-circle-outline",
   };
@@ -67,13 +90,13 @@ const DashboardScreen = ({ navigation }) => {
   const [forecast, setForecast] = useState(null);
   const [recentPosts, setRecentPosts] = useState([]);
   const [recentPredictions, setRecentPredictions] = useState([]);
-  const [fertilizerCalc, setFertilizerCalc] = useState({
-    nitrogen: 0,
-    phosphorus: 0,
-    potassium: 0,
-  });
+  const [selectedPrediction, setSelectedPrediction] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isDialogVisible, setIsDialogVisible] = useState(false);
+  const [isPredictionDialogVisible, setIsPredictionDialogVisible] =
+    useState(false);
+  const [followUpAnswers, setFollowUpAnswers] = useState({});
+  const [treatments, setTreatments] = useState([]);
 
   const WEATHER_API_KEY = "37acc4c53c27446c904205138241610"; // Replace API key with env
 
@@ -198,23 +221,6 @@ const DashboardScreen = ({ navigation }) => {
     setRecentPredictions(predictionsData);
   };
 
-  const calculateFertilizer = (area, cropType) => {
-    // This is a simplified calculation - you should implement proper calculations based on crop requirements
-    const baseRates = {
-      rice: { n: 120, p: 60, k: 60 },
-      wheat: { n: 100, p: 50, k: 50 },
-      corn: { n: 140, p: 70, k: 70 },
-      default: { n: 100, p: 50, k: 50 },
-    };
-
-    const rates = baseRates[cropType] || baseRates.default;
-    setFertilizerCalc({
-      nitrogen: ((rates.n * area) / 10000).toFixed(2),
-      phosphorus: ((rates.p * area) / 10000).toFixed(2),
-      potassium: ((rates.k * area) / 10000).toFixed(2),
-    });
-  };
-
   const handlePostPress = (post) => {
     setSelectedPost(post);
     setIsDialogVisible(true);
@@ -291,6 +297,176 @@ const DashboardScreen = ({ navigation }) => {
           >
             <Text numberOfLines={2}>{post.content}</Text>
             {post.isNew && <View style={styles.newIndicator} />}
+          </TouchableOpacity>
+        ))
+      )}
+    </CardSection>
+  );
+
+  const handlePredictionPress = async (prediction) => {
+    try {
+      // Fetch follow-up answers for this prediction
+      const followUpsQuery = query(
+        collection(db, "predictionFollowUps"),
+        where("userId", "==", auth.currentUser.uid),
+        where("predictionId", "==", prediction.id)
+      );
+
+      const followUpsSnapshot = await getDocs(followUpsQuery);
+      const followUpData = followUpsSnapshot.docs[0]?.data();
+
+      if (followUpData) {
+        setFollowUpAnswers(followUpData.followUpAnswers);
+      }
+
+      // Fetch treatments
+      const treatmentsQuery = query(
+        collection(db, "treatments"),
+        where("disease", "==", prediction.prediction),
+        where("plantType", "==", prediction.plantType)
+      );
+
+      const treatmentsSnapshot = await getDocs(treatmentsQuery);
+      if (!treatmentsSnapshot.empty) {
+        setTreatments(treatmentsSnapshot.docs[0].data().treatment);
+      } else {
+        setTreatments(["No specific treatments found for this disease."]);
+      }
+
+      setSelectedPrediction(prediction);
+      setIsPredictionDialogVisible(true);
+    } catch (error) {
+      console.error("Error fetching prediction details:", error);
+      Alert.alert("Error", "Failed to load prediction details");
+    }
+  };
+
+  const { handleAskChat, handleAskCommunity } = useCommunityAndChatbot();
+
+  const handleAskChatbotForPrediction = () => {
+    if (selectedPrediction) {
+      const success = handleAskChat({
+        plantType: selectedPrediction.plantType,
+        disease: selectedPrediction.prediction,
+        confidence: selectedPrediction.confidence,
+        followUpAnswers: followUpAnswers,
+      });
+      if (success) {
+        setIsPredictionDialogVisible(false);
+      }
+    }
+  };
+
+  const handleAskCommunityForPrediction = () => {
+    if (selectedPrediction) {
+      const success = handleAskCommunity({
+        plantType: selectedPrediction.plantType,
+        disease: selectedPrediction.prediction,
+        confidence: selectedPrediction.confidence,
+        followUpAnswers: followUpAnswers,
+      });
+      if (success) {
+        setIsPredictionDialogVisible(false);
+      }
+    }
+  };
+
+  const PredictionDialog = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={isPredictionDialogVisible}
+      onRequestClose={() => setIsPredictionDialogVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Prediction Details</Text>
+
+          {selectedPrediction && (
+            <ScrollView style={styles.scrollContainer}>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Diagnosis</Text>
+                <Text>Plant Type: {selectedPrediction.plantType}</Text>
+                <Text>Disease: {selectedPrediction.prediction}</Text>
+                <Text>Confidence: {selectedPrediction.confidence}%</Text>
+                <Text>
+                  Date: {new Date(selectedPrediction.dateTime).toLocaleString()}
+                </Text>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Follow-up Responses</Text>
+                {Object.entries(followUpAnswers).map(
+                  ([question, answer], index) => (
+                    <View key={index} style={styles.followUpItem}>
+                      <Text style={styles.questionText}>{question}</Text>
+                      <Text>Answer: {answer ? "Yes" : "No"}</Text>
+                    </View>
+                  )
+                )}
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Recommended Treatments</Text>
+                {treatments.map((treatment, index) => (
+                  <Text key={index} style={styles.treatmentText}>
+                    • {treatment}
+                  </Text>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+
+          <View style={styles.modalButtons}>
+            <Pressable
+              style={[styles.modalButton, styles.chatbotButton]}
+              onPress={handleAskChatbotForPrediction}
+            >
+              <Ionicons name="chatbubbles-outline" size={20} color="white" />
+              <Text style={styles.modalButtonText}>Ask Chatbot</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.modalButton, styles.communityButton]}
+              onPress={handleAskCommunityForPrediction}
+            >
+              <Ionicons name="people-outline" size={20} color="white" />
+              <Text style={styles.modalButtonText}>Ask Community</Text>
+            </Pressable>
+          </View>
+
+          <Pressable
+            style={styles.closeButton}
+            onPress={() => setIsPredictionDialogVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Update the renderRecentPredictions function
+  const renderRecentPredictions = () => (
+    <CardSection title="Recent Predictions">
+      {recentPredictions.length === 0 ? (
+        <Text>No recent predictions</Text>
+      ) : (
+        recentPredictions.map((prediction) => (
+          <TouchableOpacity
+            key={prediction.id}
+            style={styles.listItem}
+            onPress={() => handlePredictionPress(prediction)}
+          >
+            <View style={styles.predictionContent}>
+              <Text style={styles.predictionType}>
+                Disease: {prediction.prediction}
+              </Text>
+              <Text style={styles.predictionConfidence}>
+                Confidence: {prediction.confidence}%
+              </Text>
+            </View>
+            {prediction.isNew && <View style={styles.newIndicator} />}
           </TouchableOpacity>
         ))
       )}
@@ -377,30 +553,14 @@ const DashboardScreen = ({ navigation }) => {
       {renderRecentPosts()}
 
       {/* Recent Predictions Section */}
-      <CardSection title="Recent Predictions">
-        {recentPredictions.length === 0 ? (
-          <Text>No recent predictions</Text>
-        ) : (
-          recentPredictions.map((prediction) => (
-            <View key={prediction.id} style={styles.listItem}>
-              <Text>Disease: {prediction.prediction}</Text>
-              <Text>Confidence: {prediction.confidence}%</Text>
-              {prediction.isNew && <View style={styles.newIndicator} />}
-            </View>
-          ))
-        )}
-      </CardSection>
+      {renderRecentPredictions()}
 
       {/* Fertilizer Calculator Section */}
       <CardSection title="Fertilizer Calculator">
-        <View style={styles.fertilizerResults}>
-          <Text>Recommended Application (kg/ha):</Text>
-          <Text>Nitrogen (N): {fertilizerCalc.nitrogen}</Text>
-          <Text>Phosphorus (P): {fertilizerCalc.phosphorus}</Text>
-          <Text>Potassium (K): {fertilizerCalc.potassium}</Text>
-        </View>
+        <FertilizerCalculator />
       </CardSection>
       <PostActionDialog />
+      <PredictionDialog />
     </ScrollView>
   );
 };
@@ -564,6 +724,47 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "#666",
     fontSize: 16,
+  },
+  predictionContent: {
+    flex: 1,
+  },
+  predictionType: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  predictionConfidence: {
+    fontSize: 14,
+    color: "#666",
+  },
+  section: {
+    marginBottom: 20,
+    width: "100%",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  followUpItem: {
+    marginBottom: 10,
+  },
+  questionText: {
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  treatmentText: {
+    marginBottom: 6,
+    paddingLeft: 10,
+  },
+  scrollContainer: {
+    maxHeight: 400,
+    width: "100%",
+  },
+  chatbotButton: {
+    backgroundColor: "#34C759",
+  },
+  communityButton: {
+    backgroundColor: "#007AFF",
   },
 });
 

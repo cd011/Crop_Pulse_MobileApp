@@ -23,6 +23,9 @@ const ChatbotScreen = ({ route, navigation }) => {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef(null);
+  const isInitialMount = useRef(true);
+  const previousQuestionRef = useRef("");
+  const chatHistoryRef = useRef(null);
 
   const scrollToBottom = () => {
     if (flatListRef.current && messages.length > 0) {
@@ -30,31 +33,77 @@ const ChatbotScreen = ({ route, navigation }) => {
     }
   };
 
+  // Add initial welcome message
   useEffect(() => {
-    // Add a "New Chat" button in the navigation header
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      const welcomeMessage = {
+        id: Date.now(),
+        text: "Hello! I'm your farming assistant, specialized in helping with crop diseases and plant health. How can I help you today?",
+        sender: "bot",
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, []);
+
+  // Handle navigation options and new chat
+  useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => setMessages([])}
+          onPress={() => {
+            previousQuestionRef.current = "";
+            setMessages([]);
+            chatHistoryRef.current = null;
+            const welcomeMessage = {
+              id: Date.now(),
+              text: "Hello! I'm your farming assistant, specialized in helping with crop diseases and plant health. How can I help you today?",
+              sender: "bot",
+            };
+            setMessages([welcomeMessage]);
+          }}
           style={styles.newChatButton}
         >
           <Text style={styles.newChatButtonText}>New Chat</Text>
         </TouchableOpacity>
       ),
     });
+  }, []);
 
-    // Check if there's an initial question from navigation params
-    if (route.params?.initialQuestion) {
-      setInputText(route.params.initialQuestion);
-      // Automatically send the question
-      handleSendMessage(route.params.initialQuestion);
-    }
-  }, [route.params?.initialQuestion]);
+  // Handle initial question from community post
+  useEffect(() => {
+    const processQuestion = async () => {
+      const currentQuestion = route.params?.initialQuestion;
+
+      if (
+        currentQuestion &&
+        currentQuestion !== previousQuestionRef.current &&
+        messages.length > 0 &&
+        !isLoading
+      ) {
+        previousQuestionRef.current = currentQuestion;
+        await handleSendMessage(currentQuestion);
+        // Clear the navigation params to allow the same question to be asked again
+        navigation.setParams({ initialQuestion: null });
+      }
+    };
+
+    processQuestion();
+  }, [route.params?.initialQuestion, messages]);
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      // Reset the previous question reference when the screen comes into focus
+      previousQuestionRef.current = "";
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const handleSendMessage = useCallback(
     async (text) => {
@@ -72,10 +121,20 @@ const ChatbotScreen = ({ route, navigation }) => {
 
       try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        if (!chatHistoryRef.current) {
+          chatHistoryRef.current = model.startChat({
+            generationConfig: {
+              maxOutputTokens: 1000,
+            },
+          });
+        }
+
         // const prompt = `Just a test. Reply:Pass ${messageToSend}`;
         const prompt = `You are a helpful assistant for farmers, specializing in crop diseases. Please provide information and advice about the following query related to crop diseases: ${messageToSend}. Limit your response to less than 50 words. `;
 
-        const result = await model.generateContent(prompt);
+        //const result = await model.generateContent(prompt);
+        const result = await chatHistoryRef.current.sendMessage(prompt);
         const response = await result.response;
         const responseText = response.text();
 

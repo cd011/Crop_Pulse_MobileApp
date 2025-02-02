@@ -9,15 +9,20 @@ import {
   Alert,
   Modal,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import Checkbox from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
+import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
+
+const MAX_IMAGE_SIZE = 1024 * 1024;
 
 const PredictionScreen = () => {
   const [image, setImage] = useState(null);
@@ -27,9 +32,42 @@ const PredictionScreen = () => {
   const [followUpAnswers, setFollowUpAnswers] = useState({});
   const [treatments, setTreatments] = useState([]);
   const [showTreatments, setShowTreatments] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const [plantType, setPlantType] = useState("corn"); // Default selection
-  // const [plantType, setPlantType] = useState(null);
+  const [plantType, setPlantType] = useState(null);
+
+  const resetForm = () => {
+    setImage(null);
+    setPrediction(null);
+    setFollowUpQuestions([]);
+    setFollowUpAnswers({});
+    setTreatments([]);
+    setShowTreatments(false);
+    setPlantType(null);
+  };
+
+  const compressImage = async (uri) => {
+    try {
+      // First, get the image info to check its size
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const fileSize = blob.size;
+
+      if (fileSize > MAX_IMAGE_SIZE) {
+        // Calculate compression quality (50% for images > 1MB)
+        const manipResult = await ImageManipulator.manipulateAsync(
+          uri,
+          [{ resize: { width: 1024 } }], // Resize to max width of 1024px
+          { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        return manipResult.uri;
+      }
+      return uri;
+    } catch (error) {
+      console.error("Error compressing image:", error);
+      return uri;
+    }
+  };
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -40,7 +78,8 @@ const PredictionScreen = () => {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      const compressedUri = await compressImage(result.assets[0].uri);
+      setImage(compressedUri);
       setPrediction(null);
     }
   };
@@ -49,11 +88,12 @@ const PredictionScreen = () => {
     let result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7, // Reduced initial quality for camera
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      const compressedUri = await compressImage(result.assets[0].uri);
+      setImage(compressedUri);
       setPrediction(null);
     }
   };
@@ -141,6 +181,7 @@ const PredictionScreen = () => {
       return;
     }
 
+    setIsLoading(true);
     const formData = new FormData();
     formData.append("file", {
       uri: image,
@@ -167,6 +208,8 @@ const PredictionScreen = () => {
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to predict disease");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -251,49 +294,40 @@ const PredictionScreen = () => {
     }
   };
 
-  const handleAskChatbot = () => {
+  const { handleAskChat, handleAskCommunity } = useCommunityAndChatbot();
+
+  const handleAskChatbotClick = () => {
     const user = auth.currentUser;
     if (user && prediction) {
-      const chatPrompt = `I have a ${plantType} plant diagnosed with ${
-        prediction.predicted_disease
-      } (${prediction.confidence}% confidence). 
-      Can you provide:
-      1. Methods to confirm this diagnosis
-      2. Effective treatment options
-      3. Preventive measures for future occurrences
-
-      Additional context: 
-      - Plant Type: ${plantType}
-      - Confidence Level: ${prediction.confidence}%
-      - Follow-up Answers: ${JSON.stringify(followUpAnswers)}`;
-
-      navigation.navigate("Chatbot", { initialQuestion: chatPrompt });
-      setIsDialogVisible(false);
+      const success = handleAskChat({
+        plantType: plantType,
+        disease: prediction.predicted_disease,
+        confidence: prediction.confidence,
+        followUpAnswers: followUpAnswers,
+      });
+      if (success) {
+        resetForm();
+        setIsDialogVisible(false);
+      }
     }
   };
 
-  const handleAskCommunity = () => {
+  const handleAskCommunityClick = () => {
     if (!areAllQuestionsAnswered()) {
       Alert.alert("Error", "Please answer all follow-up questions first");
       return;
     }
 
-    const postContent = `Plant Type: ${plantType}
-  Disease: ${prediction.predicted_disease}
-  Confidence: ${prediction.confidence}%
-  
-  Follow-up Information:
-  ${Object.entries(followUpAnswers)
-    .map(([question, answer]) => `${question}: ${answer ? "Yes" : "No"}`)
-    .join("\n")}
-  
-  I would appreciate any advice or experience with treating this condition.`;
-
-    navigation.navigate("Community", {
-      screen: "CommunityMain", // Changed from CommunityScreen to CommunityMain
-      params: { predefinedPost: postContent },
+    const success = handleAskCommunity({
+      plantType: plantType,
+      disease: prediction.predicted_disease,
+      confidence: prediction.confidence,
+      followUpAnswers: followUpAnswers,
     });
-    setIsDialogVisible(false);
+    if (success) {
+      resetForm();
+      setIsDialogVisible(false);
+    }
   };
 
   const renderFollowUpQuestions = () => {
@@ -420,7 +454,7 @@ const PredictionScreen = () => {
                       styles.modalButton,
                       !areAllQuestionsAnswered() && styles.disabledButton,
                     ]}
-                    onPress={handleAskChatbot}
+                    onPress={handleAskChatbotClick}
                     disabled={!areAllQuestionsAnswered()}
                   >
                     <Text style={styles.modalButtonText}>Ask Chatbot</Text>
@@ -431,7 +465,7 @@ const PredictionScreen = () => {
                       styles.modalButton,
                       !areAllQuestionsAnswered() && styles.disabledButton,
                     ]}
-                    onPress={handleAskCommunity}
+                    onPress={handleAskCommunityClick}
                     disabled={!areAllQuestionsAnswered()}
                   >
                     <Text style={styles.modalButtonText}>Ask Community</Text>
@@ -452,7 +486,10 @@ const PredictionScreen = () => {
 
                   <TouchableOpacity
                     style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setIsDialogVisible(false)}
+                    onPress={() => {
+                      resetForm();
+                      setIsDialogVisible(false);
+                    }}
                   >
                     <Text style={styles.modalButtonText}>Cancel</Text>
                   </TouchableOpacity>
@@ -473,11 +510,8 @@ const PredictionScreen = () => {
                 <TouchableOpacity
                   style={styles.modalButton}
                   onPress={() => {
-                    setShowTreatments(false);
+                    resetForm();
                     setIsDialogVisible(false);
-                    setImage(null);
-                    setPrediction(null);
-                    navigation.navigate("Prediction");
                   }}
                 >
                   <Text style={styles.modalButtonText}>Done</Text>

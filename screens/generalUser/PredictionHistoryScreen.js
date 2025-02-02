@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { useNavigation } from "@react-navigation/native";
+import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
 
 const PredictionHistoryScreen = () => {
   const [predictions, setPredictions] = useState([]);
@@ -122,46 +123,35 @@ const PredictionHistoryScreen = () => {
     setIsModalVisible(true);
   };
 
-  const handleAskChatbot = () => {
+  const { handleAskChat, handleAskCommunity } = useCommunityAndChatbot();
+
+  // Replace handleAskChatbot with:
+  const handleAskChatbotForPrediction = () => {
     if (selectedPrediction) {
-      const chatPrompt = `I have a ${
-        selectedPrediction.plantType
-      } plant diagnosed with ${selectedPrediction.prediction} (${
-        selectedPrediction.confidence
-      }% confidence). 
-      Can you provide:
-      1. Methods to confirm this diagnosis
-      2. Effective treatment options
-      3. Preventive measures for future occurrences
-
-      Additional context: 
-      - Plant Type: ${selectedPrediction.plantType}
-      - Confidence Level: ${selectedPrediction.confidence}%
-      - Follow-up Answers: ${JSON.stringify(followUpAnswers)}`;
-
-      navigation.navigate("Chatbot", { initialQuestion: chatPrompt });
-      setIsModalVisible(false);
+      const success = handleAskChat({
+        plantType: selectedPrediction.plantType,
+        disease: selectedPrediction.prediction,
+        confidence: selectedPrediction.confidence,
+        followUpAnswers: followUpAnswers,
+      });
+      if (success) {
+        setIsModalVisible(false);
+      }
     }
   };
 
-  const handleAskCommunity = () => {
+  // Replace handleAskCommunity with:
+  const handleAskCommunityForPrediction = () => {
     if (selectedPrediction) {
-      const postContent = `Plant Type: ${selectedPrediction.plantType}
-Disease: ${selectedPrediction.prediction}
-Confidence: ${selectedPrediction.confidence}%
-
-Follow-up Information:
-${Object.entries(followUpAnswers)
-  .map(([question, answer]) => `${question}: ${answer ? "Yes" : "No"}`)
-  .join("\n")}
-
-I would appreciate any advice or experience with treating this condition.`;
-
-      navigation.navigate("Community", {
-        screen: "CommunityMain",
-        params: { predefinedPost: postContent },
+      const success = handleAskCommunity({
+        plantType: selectedPrediction.plantType,
+        disease: selectedPrediction.prediction,
+        confidence: selectedPrediction.confidence,
+        followUpAnswers: followUpAnswers,
       });
-      setIsModalVisible(false);
+      if (success) {
+        setIsModalVisible(false);
+      }
     }
   };
 
@@ -260,14 +250,14 @@ I would appreciate any advice or experience with treating this condition.`;
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={handleAskChatbot}
+                    onPress={handleAskChatbotForPrediction}
                   >
                     <Text style={styles.buttonText}>Ask Chatbot</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={handleAskCommunity}
+                    onPress={handleAskCommunityForPrediction}
                   >
                     <Text style={styles.buttonText}>Ask Community</Text>
                   </TouchableOpacity>
