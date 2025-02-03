@@ -7,9 +7,12 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import { auth, db } from "../../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import Checkbox from "expo-checkbox";
@@ -69,6 +72,36 @@ const Login = ({ navigation }) => {
       );
       const user = userCredential.user;
 
+      // Check if email is verified
+      if (!user.emailVerified) {
+        Alert.alert(
+          "Email Not Verified",
+          "Please verify your email before logging in. Would you like us to send another verification email?",
+          [
+            {
+              text: "Yes",
+              onPress: async () => {
+                try {
+                  await sendEmailVerification(user);
+                  Alert.alert(
+                    "Verification Email Sent",
+                    "Please check your email and verify your account."
+                  );
+                } catch (error) {
+                  Alert.alert("Error", "Failed to send verification email");
+                }
+              },
+            },
+            {
+              text: "No",
+              style: "cancel",
+            },
+          ]
+        );
+        await auth.signOut();
+        return;
+      }
+
       // Save email for future use
       await AsyncStorage.setItem("lastUsedEmail", email);
 
@@ -80,6 +113,11 @@ const Login = ({ navigation }) => {
       // Check if user is a general user
       const userDoc = await getDoc(doc(db, "generalUsers", user.uid));
       if (userDoc.exists() && userDoc.data().userType === "general") {
+        // Update emailVerified status in Firestore
+        await updateDoc(doc(db, "generalUsers", user.uid), {
+          emailVerified: true,
+        });
+
         // Check if profile is complete
         if (
           !userDoc.data().name ||

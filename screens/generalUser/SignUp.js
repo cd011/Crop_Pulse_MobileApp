@@ -7,7 +7,10 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import { auth, db } from "../../firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,6 +37,12 @@ const SignUp = ({ navigation }) => {
     );
   };
 
+  const clearForm = () => {
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
   const handleSignUp = async () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -43,15 +52,33 @@ const SignUp = ({ navigation }) => {
       );
       const user = userCredential.user;
 
+      // Send verification email
+      await sendEmailVerification(user);
+
       // Store additional user data in Firestore
       await setDoc(doc(db, "generalUsers", user.uid), {
         email: user.email,
         userType: "general",
         createdAt: new Date().toISOString(),
+        emailVerified: false,
       });
 
-      // Navigate to CompleteProfile instead of GeneralUserTabs
-      navigation.navigate("CompleteProfile");
+      /// Show verification alert
+      Alert.alert(
+        "Verify Your Email",
+        "A verification link has been sent to your email address. Please verify your email before logging in.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Sign out the user and navigate to login
+              auth.signOut();
+              clearForm();
+              navigation.navigate("GeneralUserAuth", { isLogin: true });
+            },
+          },
+        ]
+      );
     } catch (error) {
       Alert.alert("Error", error.message);
     }
