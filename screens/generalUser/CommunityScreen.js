@@ -24,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
+import { generateAIResponse } from "./generateAIResponse";
 
 const PLANT_TAGS = [
   "Apple",
@@ -91,6 +92,10 @@ const CommunityScreen = ({ route, navigation }) => {
     }
 
     try {
+      // Generate AI response
+      const aiResponse = await generateAIResponse(newPost, selectedTag);
+
+      // Add post with AI response as first comment
       await addDoc(collection(db, "posts"), {
         content: newPost,
         authorId: auth.currentUser.uid,
@@ -98,10 +103,22 @@ const CommunityScreen = ({ route, navigation }) => {
         authorName: userName,
         tag: selectedTag,
         createdAt: new Date().toISOString(),
-        comments: [],
+        comments: [
+          {
+            content: aiResponse,
+            authorId: "AI_SYSTEM",
+            authorName: "Plant Expert AI",
+            authorEmail: "ai@system",
+            createdAt: new Date().toISOString(),
+            likes: [],
+            dislikes: [],
+            isAIResponse: true,
+          },
+        ],
         likes: [],
         dislikes: [],
       });
+
       setNewPost("");
       setSelectedTag("");
     } catch (error) {
