@@ -34,7 +34,7 @@ const PredictionScreen = () => {
   const [showTreatments, setShowTreatments] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const [plantType, setPlantType] = useState(null);
+  const [plantType, setPlantType] = useState("apple");
 
   const resetForm = () => {
     setImage(null);
@@ -43,7 +43,7 @@ const PredictionScreen = () => {
     setFollowUpAnswers({});
     setTreatments([]);
     setShowTreatments(false);
-    setPlantType(null);
+    setPlantType("apple");
   };
 
   const compressImage = async (uri) => {
