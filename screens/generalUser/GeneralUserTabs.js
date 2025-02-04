@@ -10,6 +10,7 @@ import ChatbotScreen from "./ChatbotScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import DashboardScreen from "./DashboardScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const Tab = createBottomTabNavigator();
 const CommunityStack = createNativeStackNavigator();
@@ -50,6 +51,7 @@ const GeneralUserTabs = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
+        tabBarActiveTintColor: Colors.primary, // Change this color for selected tab
       })}
     >
       <Tab.Screen name="Prediction" component={PredictionScreen} />

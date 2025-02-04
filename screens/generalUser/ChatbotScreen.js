@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Markdown from "react-native-markdown-display";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 // import { GEMINI_API_KEY } from "@env";
 
 const API_KEY = "AIzaSyBKKMtjkrp3dJjK70_hCV21OMmXvtLqc2k";
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   sendButton: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     borderRadius: 20,
     paddingHorizontal: 20,
   },
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   newChatButtonText: {
-    color: "#007AFF",
+    color: Colors.primary,
     fontSize: 16,
   },
 });

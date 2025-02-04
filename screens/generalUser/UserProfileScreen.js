@@ -21,6 +21,7 @@ import {
 } from "firebase/auth";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const PasswordChangeModal = ({
   visible,
@@ -35,8 +36,8 @@ const PasswordChangeModal = ({
 
   return (
     <Modal visible={visible} transparent={true} animationType="slide">
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Change Password</Text>
 
           <View style={styles.passwordContainer}>
@@ -56,7 +57,7 @@ const PasswordChangeModal = ({
               <Ionicons
                 name={showCurrentPassword ? "eye-off-outline" : "eye-outline"}
                 size={24}
-                color="gray"
+                color="#666"
               />
             </TouchableOpacity>
           </View>
@@ -78,7 +79,7 @@ const PasswordChangeModal = ({
               <Ionicons
                 name={showNewPassword ? "eye-off-outline" : "eye-outline"}
                 size={24}
-                color="gray"
+                color="#666"
               />
             </TouchableOpacity>
           </View>
@@ -103,14 +104,24 @@ const PasswordChangeModal = ({
               <Ionicons
                 name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
                 size={24}
-                color="gray"
+                color="#666"
               />
             </TouchableOpacity>
           </View>
 
           <View style={styles.modalButtons}>
-            <Button title="Change Password" onPress={onSubmit} />
-            <Button title="Cancel" onPress={onClose} color="red" />
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={onSubmit}
+            >
+              <Text style={styles.buttonText}>Change Password</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={onClose}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -167,16 +178,12 @@ const UserProfileScreen = ({ navigation }) => {
 
     const user = auth.currentUser;
     try {
-      // Reauthenticate user first
       const credential = EmailAuthProvider.credential(
         user.email,
         passwordData.currentPassword
       );
       await reauthenticateWithCredential(user, credential);
-
-      // Update password
       await updatePassword(user, passwordData.newPassword);
-
       Alert.alert("Success", "Password updated successfully");
       handleClosePasswordModal();
     } catch (error) {
@@ -238,13 +245,8 @@ const UserProfileScreen = ({ navigation }) => {
             const user = auth.currentUser;
             if (user) {
               try {
-                // Delete Firestore document first
                 await deleteDoc(doc(db, "generalUsers", user.uid));
-
-                // Adding a small delay before deleting the user
                 await new Promise((resolve) => setTimeout(resolve, 500));
-
-                // Now delete the user account
                 await deleteUser(user);
                 navigation.reset({
                   index: 0,
@@ -282,7 +284,7 @@ const UserProfileScreen = ({ navigation }) => {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>User Profile</Text>
       <View style={styles.profileInfo}>
-        <Text>Email: {profile.email}</Text>
+        <Text style={styles.label}>Email: {profile.email}</Text>
         {isEditing ? (
           <>
             <TextInput
@@ -293,8 +295,10 @@ const UserProfileScreen = ({ navigation }) => {
               }
               placeholder="Name"
             />
-            <Button title="Get Current Location" onPress={handleGetLocation} />
-            <Text>
+            <TouchableOpacity style={styles.button} onPress={handleGetLocation}>
+              <Text style={styles.buttonText}>Get Current Location</Text>
+            </TouchableOpacity>
+            <Text style={styles.label}>
               Latitude: {profile.location.latitude}, Longitude:{" "}
               {profile.location.longitude}
             </Text>
@@ -306,32 +310,52 @@ const UserProfileScreen = ({ navigation }) => {
               }
               placeholder="Plant Types (comma separated)"
             />
-            <Button title="Save Changes" onPress={handleUpdateProfile} />
-            <Button title="Cancel" onPress={() => setIsEditing(false)} />
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={handleUpdateProfile}
+            >
+              <Text style={styles.buttonText}>Save Changes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={() => setIsEditing(false)}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
           </>
         ) : (
           <>
-            <Text>Name: {profile.name}</Text>
-            <Text>
+            <Text style={styles.label}>Name: {profile.name}</Text>
+            <Text style={styles.label}>
               Location: {profile.location.latitude},{" "}
               {profile.location.longitude}
             </Text>
-            <Text>Plant Types: {profile.plantTypes}</Text>
-            <Button title="Edit Profile" onPress={() => setIsEditing(true)} />
+            <Text style={styles.label}>Plant Types: {profile.plantTypes}</Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => setIsEditing(true)}
+            >
+              <Text style={styles.buttonText}>Edit Profile</Text>
+            </TouchableOpacity>
           </>
         )}
       </View>
       <View style={styles.buttonContainer}>
-        <Button
-          title="Change Password"
+        <TouchableOpacity
+          style={styles.button}
           onPress={() => setShowPasswordModal(true)}
-        />
-        <Button title="Logout" onPress={handleLogout} />
-        <Button
-          title="Delete Account"
+        >
+          <Text style={styles.buttonText}>Change Password</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleLogout}>
+          <Text style={styles.buttonText}>Logout</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, styles.deleteButton]}
           onPress={handleDeleteAccount}
-          color="red"
-        />
+        >
+          <Text style={styles.buttonText}>Delete Account</Text>
+        </TouchableOpacity>
       </View>
       <PasswordChangeModal
         visible={showPasswordModal}
@@ -347,34 +371,64 @@ const UserProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 24,
+    backgroundColor: Colors.background,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
+    color: "#333",
+    textAlign: "center",
   },
   profileInfo: {
     marginBottom: 20,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#555",
+    marginBottom: 10,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
+    padding: 12,
+    marginBottom: 15,
+    borderRadius: 8,
+    backgroundColor: "#fff",
   },
   buttonContainer: {
     marginTop: 20,
   },
-  modalContainer: {
+  button: {
+    backgroundColor: Colors.primary,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  primaryButton: {
+    backgroundColor: Colors.primary,
+  },
+  secondaryButton: {
+    backgroundColor: "#6c757d",
+  },
+  deleteButton: {
+    backgroundColor: "#dc3545",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    padding: 20,
   },
-  modalContent: {
-    backgroundColor: "white",
+  modalContainer: {
+    backgroundColor: "#fff",
+    margin: 20,
     padding: 20,
     borderRadius: 10,
   },
@@ -383,24 +437,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
+    color: "#333",
   },
   modalButtons: {
-    flexDirection: "column",
-    gap: 10,
     marginTop: 15,
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderColor: "gray",
+    borderColor: "#ddd",
     borderWidth: 1,
-    marginBottom: 12,
-    borderRadius: 5,
+    marginBottom: 15,
+    borderRadius: 8,
+    backgroundColor: "#fff",
   },
   passwordInput: {
     flex: 1,
     height: 40,
-    paddingLeft: 8,
+    paddingLeft: 10,
+    color: "#333",
   },
   eyeIcon: {
     padding: 10,
