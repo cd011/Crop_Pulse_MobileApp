@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import SignUp from "./SignUp";
 import Login from "./Login";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const GeneralUserAuth = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -28,12 +29,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    padding: 20,
+    backgroundColor: Colors.background,
   },
   switchText: {
-    color: "#007AFF",
+    color: Colors.primary,
     textAlign: "center",
     marginTop: 20,
+    marginBottom: 20,
   },
 });
 
