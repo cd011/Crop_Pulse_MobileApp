@@ -13,6 +13,7 @@ import {
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const PostCommentsScreen = ({ route }) => {
   const { postId } = route.params;
@@ -307,6 +308,7 @@ const PostCommentsScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
     padding: 10,
   },
   postContainer: {
@@ -321,7 +323,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   tagContainer: {
-    backgroundColor: "#e8f4f8",
+    backgroundColor: Colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -329,7 +331,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   tagText: {
-    color: "#2c88d9",
+    color: Colors.primary,
     fontSize: 12,
   },
   postAuthor: {
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     borderRadius: 20,
     padding: 10,
     justifyContent: "center",
@@ -403,12 +405,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   aiCommentContainer: {
-    backgroundColor: "#f0f8ff", // Light blue background
+    backgroundColor: Colors.primaryLight, // Light blue background
     borderLeftWidth: 3,
-    borderLeftColor: "#007AFF",
+    borderLeftColor: Colors.primary,
   },
   aiCommentAuthor: {
-    color: "#007AFF",
+    color: Colors.primary,
     fontWeight: "bold",
   },
 });
