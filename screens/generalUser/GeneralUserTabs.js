@@ -56,7 +56,7 @@ const GeneralUserTabs = () => {
     >
       <Tab.Screen name="Prediction" component={PredictionScreen} />
       <Tab.Screen
-        name="PredictionHistory"
+        name="Prediction History"
         component={PredictionHistoryScreen}
         options={{
           tabBarButton: () => null,
