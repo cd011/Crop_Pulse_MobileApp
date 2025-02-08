@@ -12,13 +12,14 @@ import {
 import {
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import Checkbox from "expo-checkbox";
-import { Colors, Typography, GlobalStyles } from "../globalStyles"; // Import global styles
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -26,6 +27,7 @@ const Login = ({ navigation }) => {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isValid, setIsValid] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const logoScale = new Animated.Value(0.8);
 
@@ -157,6 +159,55 @@ const Login = ({ navigation }) => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert(
+        "Email Required",
+        "Please enter your email address to reset your password"
+      );
+      return;
+    }
+
+    // Add confirmation alert before proceeding with password reset
+    Alert.alert(
+      "Password Reset",
+      "Are you sure you want to request a password reset?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes, Reset Password",
+          onPress: async () => {
+            try {
+              setIsResettingPassword(true);
+              await sendPasswordResetEmail(auth, email);
+              Alert.alert(
+                "Password Reset Email Sent",
+                "Please check your email for instructions to reset your password"
+              );
+            } catch (error) {
+              let errorMessage = "Failed to send password reset email";
+              switch (error.code) {
+                case "auth/user-not-found":
+                  errorMessage = "No account exists with this email address";
+                  break;
+                case "auth/invalid-email":
+                  errorMessage = "Please enter a valid email address";
+                  break;
+                case "auth/too-many-requests":
+                  errorMessage = "Too many attempts. Please try again later";
+                  break;
+              }
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setIsResettingPassword(false);
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Animated.View
@@ -208,9 +259,19 @@ const Login = ({ navigation }) => {
       <TouchableOpacity
         style={[styles.button, !isValid && styles.buttonDisabled]}
         onPress={handleLogin}
-        disabled={!isValid}
+        disabled={!isValid || isResettingPassword}
       >
-        <Text style={styles.buttonText}>Login</Text>
+        <Text style={styles.buttonText}>
+          {isResettingPassword ? "Please wait..." : "Login"}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.forgotPasswordButton}
+        onPress={handleForgotPassword}
+        disabled={isResettingPassword}
+      >
+        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
       </TouchableOpacity>
     </View>
   );
@@ -307,6 +368,16 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  forgotPasswordButton: {
+    marginTop: 16,
+    marginBottom: 40,
+    alignItems: "center",
+  },
+  forgotPasswordText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    textDecorationLine: "underline",
   },
 });
 
