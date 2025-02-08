@@ -222,15 +222,24 @@ const UserProfileScreen = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Greeting" }],
-      });
-    } catch (error) {
-      Alert.alert("Error", "Failed to log out");
-    }
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Log Out",
+        onPress: async () => {
+          try {
+            await signOut(auth);
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Greeting" }],
+            });
+          } catch (error) {
+            Alert.alert("Error", "Failed to log out");
+          }
+        },
+        style: "destructive",
+      },
+    ]);
   };
 
   const handleDeleteAccount = async () => {
