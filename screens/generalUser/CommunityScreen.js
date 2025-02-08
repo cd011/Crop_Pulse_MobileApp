@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import {
   collection,
@@ -24,6 +26,8 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
+import { generateAIResponse } from "./generateAIResponse";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const PLANT_TAGS = [
   "Apple",
@@ -44,6 +48,8 @@ const CommunityScreen = ({ route, navigation }) => {
   const [filterCriteria, setFilterCriteria] = useState("all"); // all, myPosts, byTag, mostLiked
   const [selectedTagFilter, setSelectedTagFilter] = useState("");
   const [userName, setUserName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     // Fetch the current user's name when component mounts
@@ -91,6 +97,14 @@ const CommunityScreen = ({ route, navigation }) => {
     }
 
     try {
+      setIsLoading(true); // Start loading
+      Keyboard.dismiss(); // Dismiss keyboard
+      inputRef.current?.blur();
+
+      // Generate AI response
+      const aiResponse = await generateAIResponse(newPost, selectedTag);
+
+      // Add post with AI response as first comment
       await addDoc(collection(db, "posts"), {
         content: newPost,
         authorId: auth.currentUser.uid,
@@ -98,15 +112,29 @@ const CommunityScreen = ({ route, navigation }) => {
         authorName: userName,
         tag: selectedTag,
         createdAt: new Date().toISOString(),
-        comments: [],
+        comments: [
+          {
+            content: aiResponse,
+            authorId: "AI_SYSTEM",
+            authorName: "Plant Expert AI",
+            authorEmail: "ai@system",
+            createdAt: new Date().toISOString(),
+            likes: [],
+            dislikes: [],
+            isAIResponse: true,
+          },
+        ],
         likes: [],
         dislikes: [],
       });
+
       setNewPost("");
       setSelectedTag("");
     } catch (error) {
       console.error("Error adding post:", error);
       Alert.alert("Error", "Failed to add post");
+    } finally {
+      setIsLoading(false); // Stop loading regardless of outcome
     }
   };
 
@@ -268,7 +296,16 @@ const CommunityScreen = ({ route, navigation }) => {
             navigation.navigate("PostCommentsScreen", { postId: item.id })
           }
         >
-          <Ionicons name="chatbubbles-outline" size={24} color="#0e2cc4" />
+          <View style={styles.commentButtonInner}>
+            <Ionicons
+              name="chatbubbles-outline"
+              size={24}
+              color={Colors.primary}
+            />
+            <Text style={styles.commentCount}>
+              {item.comments?.length || 0}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         {item.authorId === auth.currentUser.uid && (
@@ -363,22 +400,31 @@ const CommunityScreen = ({ route, navigation }) => {
       />
 
       <View style={styles.inputContainer}>
-        <View style={styles.tagSelectionContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {PLANT_TAGS.map((tag) => (
-              <TouchableOpacity
-                key={tag}
-                style={[
-                  styles.tagButton,
-                  selectedTag === tag && styles.tagButtonActive,
-                ]}
-                onPress={() => setSelectedTag(tag)}
-              >
-                <Text style={styles.tagButtonText}>{tag}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {newPost.trim() !== "" && (
+          <View style={styles.tagSelectionContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {PLANT_TAGS.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  style={[
+                    styles.tagButton,
+                    selectedTag === tag && styles.tagButtonActive,
+                  ]}
+                  onPress={() => setSelectedTag(tag)}
+                >
+                  <Text
+                    style={[
+                      styles.tagButtonText,
+                      selectedTag === tag && styles.tagButtonTextActive,
+                    ]}
+                  >
+                    {tag}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
         <TextInput
           style={styles.input}
           value={newPost}
@@ -386,9 +432,35 @@ const CommunityScreen = ({ route, navigation }) => {
           placeholder="Create a new post."
           multiline
         />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddPost}>
-          <Text style={styles.addButtonText}>Post</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.cancelButton,
+              !newPost.trim() && styles.cancelButtonDisabled,
+            ]}
+            onPress={() => {
+              setNewPost("");
+              setSelectedTag("");
+            }}
+            disabled={!newPost.trim() || isLoading}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.addButton,
+              (!newPost.trim() || !selectedTag) && styles.addButtonDisabled,
+            ]}
+            onPress={handleAddPost}
+            disabled={!newPost.trim() || !selectedTag || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.addButtonText}>Post</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -408,10 +480,10 @@ const styles = StyleSheet.create({
     padding: 8,
     marginRight: 10,
     borderRadius: 20,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: Colors.white,
   },
   filterButtonActive: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primaryLight,
   },
   filterButtonText: {
     color: "#333",
@@ -424,10 +496,10 @@ const styles = StyleSheet.create({
     padding: 8,
     marginRight: 10,
     borderRadius: 20,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: Colors.white,
   },
   tagFilterButtonActive: {
-    backgroundColor: "#28a745",
+    backgroundColor: Colors.primaryLight,
   },
   tagFilterButtonText: {
     color: "#333",
@@ -447,7 +519,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   tagContainer: {
-    backgroundColor: "#e8f4f8",
+    backgroundColor: Colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -455,7 +527,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   tagText: {
-    color: "#2c88d9",
+    color: Colors.primary,
     fontSize: 12,
   },
   postAuthor: {
@@ -484,7 +556,7 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   commentButtonText: {
-    color: "#007AFF",
+    color: Colors.primary,
   },
   tagSelectionContainer: {
     height: 40,
@@ -494,17 +566,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: Colors.white,
     marginRight: 8,
   },
   tagButtonActive: {
-    backgroundColor: "#28a745",
+    backgroundColor: Colors.primaryLight,
   },
   tagButtonText: {
     color: "#333",
   },
   inputContainer: {
-    padding: 10,
+    paddingTop: 10,
     backgroundColor: "#f0f0f0",
   },
   input: {
@@ -515,7 +587,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     borderRadius: 20,
     padding: 10,
     alignItems: "center",
@@ -523,6 +595,45 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: "#fff",
     fontWeight: "bold",
+  },
+  commentButtonInner: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  commentCount: {
+    ...Typography.caption,
+    color: Colors.primary,
+    marginLeft: 4,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "flex",
+    gap: 250,
+  },
+  cancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: Colors.error,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cancelButtonDisabled: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: Colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    ...Typography.button,
+    color: Colors.white,
+    fontSize: 16,
+  },
+  addButtonDisabled: {
+    backgroundColor: Colors.primaryLight,
+    opacity: 0.7,
   },
 });
 

@@ -5,12 +5,18 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
+  Animated,
   Alert,
 } from "react-native";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import { auth, db } from "../../firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors, Typography, GlobalStyles } from "../globalStyles"; // Import global styles
 
 const SignUp = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -19,6 +25,17 @@ const SignUp = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValid, setIsValid] = useState(false);
+
+  const logoScale = new Animated.Value(0.8);
+
+  useEffect(() => {
+    Animated.spring(logoScale, {
+      toValue: 1,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     // Validate form
@@ -34,6 +51,12 @@ const SignUp = ({ navigation }) => {
     );
   };
 
+  const clearForm = () => {
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
   const handleSignUp = async () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -43,15 +66,33 @@ const SignUp = ({ navigation }) => {
       );
       const user = userCredential.user;
 
+      // Send verification email
+      await sendEmailVerification(user);
+
       // Store additional user data in Firestore
       await setDoc(doc(db, "generalUsers", user.uid), {
         email: user.email,
         userType: "general",
         createdAt: new Date().toISOString(),
+        emailVerified: false,
       });
 
-      // Navigate to CompleteProfile instead of GeneralUserTabs
-      navigation.navigate("CompleteProfile");
+      /// Show verification alert
+      Alert.alert(
+        "Verify Your Email",
+        "A verification link has been sent to your email address. Please verify your email before logging in.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Sign out the user and navigate to login
+              auth.signOut();
+              clearForm();
+              navigation.navigate("GeneralUserAuth", { isLogin: true });
+            },
+          },
+        ]
+      );
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -59,6 +100,16 @@ const SignUp = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <Animated.View
+        style={[styles.logoContainer, { transform: [{ scale: logoScale }] }]}
+      >
+        <Image
+          source={require("../../assets/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.appName}>CropPulse</Text>
+      </Animated.View>
       <Text style={styles.title}>Create Account</Text>
       <TextInput
         style={styles.input}
@@ -126,57 +177,93 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    padding: 20,
+    padding: 24,
+    backgroundColor: Colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    ...Typography.h2,
     marginBottom: 20,
-    textAlign: "center",
   },
   input: {
-    height: 40,
-    borderColor: "gray",
+    height: 48,
+    borderColor: Colors.primaryLight,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingLeft: 8,
-    borderRadius: 5,
+    marginBottom: 16,
+    paddingLeft: 12,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderColor: "gray",
+    borderColor: Colors.primaryLight,
     borderWidth: 1,
-    marginBottom: 12,
-    borderRadius: 5,
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
   },
   passwordInput: {
     flex: 1,
-    height: 40,
-    paddingLeft: 8,
+    height: 48,
+    paddingLeft: 12,
   },
   eyeIcon: {
-    padding: 10,
+    padding: 12,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 8,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 16,
   },
   buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    ...Typography.button,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  checkboxLabel: {
+    ...Typography.caption,
+    marginLeft: 8,
   },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: Colors.primaryLight,
   },
   errorText: {
-    color: "red",
+    ...Typography.caption,
+    color: Colors.error,
+    marginBottom: 16,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  logo: {
+    width: 120,
+    height: 120,
     marginBottom: 10,
-    textAlign: "center",
+    borderRadius: 60,
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#1B5E20",
+    letterSpacing: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 });
 

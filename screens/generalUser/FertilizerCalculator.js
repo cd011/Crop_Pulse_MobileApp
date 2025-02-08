@@ -23,6 +23,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const FertilizerCalculator = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -169,39 +170,6 @@ const FertilizerCalculator = () => {
         },
       },
     ]);
-  };
-
-  const renderSavedRatios = () => {
-    if (savedRatios.length === 0) {
-      return (
-        <Text style={styles.noRatiosText}>No saved fertilizer ratios</Text>
-      );
-    }
-
-    return savedRatios.map((ratio) => (
-      <View key={ratio.id} style={styles.savedRatioCard}>
-        <View style={styles.savedRatioHeader}>
-          <Text style={styles.savedRatioCrop}>
-            {crops.find((c) => c.value === ratio.crop)?.label || ratio.crop}
-          </Text>
-          <Text style={styles.savedRatioDate}>
-            {new Date(ratio.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
-        <Text style={styles.savedRatioArea}>Area: {ratio.area} m²</Text>
-        <View style={styles.savedRatioValues}>
-          <Text>N: {ratio.nitrogen} kg</Text>
-          <Text>P: {ratio.phosphorus} kg</Text>
-          <Text>K: {ratio.potassium} kg</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteRatio(ratio.id)}
-        >
-          <Ionicons name="trash-outline" size={20} color="red" />
-        </TouchableOpacity>
-      </View>
-    ));
   };
 
   return (
@@ -379,78 +347,90 @@ const FertilizerCalculator = () => {
 
 const styles = StyleSheet.create({
   openButton: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   openButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
-    marginLeft: 8,
+    marginLeft: 10,
+  },
+  savedRatiosButton: {
+    backgroundColor: Colors.primaryLight,
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  savedRatiosButtonText: {
+    color: Colors.primary,
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 10,
   },
   savedRatiosContainer: {
     marginTop: 16,
   },
   savedRatiosTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: 12,
+    color: "#1a1a1a",
   },
-  savedRatiosScroll: {},
-  savedRatioCard: {
-    backgroundColor: "#f5f5f5",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    position: "relative",
-  },
-  savedRatioHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  savedRatioCrop: {
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  savedRatioDate: {
-    color: "#666",
-  },
-  savedRatioArea: {
-    marginBottom: 4,
-  },
-  savedRatioValues: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  noRatiosText: {
-    textAlign: "center",
-    color: "#666",
-    fontStyle: "italic",
+  savedRatiosScroll: {
+    maxHeight: "70%",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     width: "90%",
-    maxHeight: "80%",
+    maxHeight: "85%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: "700",
     marginBottom: 20,
     textAlign: "center",
+    color: "#1a1a1a",
+    letterSpacing: -0.5,
   },
   inputContainer: {
     marginBottom: 20,
@@ -459,29 +439,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginBottom: 8,
+    color: "#444",
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+    borderColor: "rgba(0,0,0,0.1)",
+    borderRadius: 12,
     overflow: "hidden",
+    backgroundColor: "#fff",
   },
   picker: {
-    height: 50,
+    height: 60,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
+    borderColor: "rgba(0,0,0,0.1)",
+    borderRadius: 12,
+    padding: 14,
     fontSize: 16,
+    backgroundColor: "#fff",
   },
   calculateButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   calculateButtonText: {
     color: "white",
@@ -489,35 +480,50 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   disabledButton: {
-    backgroundColor: "#ccc",
+    backgroundColor: Colors.primaryLight,
   },
   resultsContainer: {
     borderTopWidth: 1,
-    borderTopColor: "#ccc",
-    paddingTop: 20,
-    marginBottom: 20,
+    borderTopColor: "rgba(0,0,0,0.08)",
+    paddingTop: 24,
+    marginBottom: 24,
   },
   resultsTitle: {
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 12,
+    marginBottom: 16,
+    color: "#1a1a1a",
   },
   resultRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.02)",
+    borderRadius: 8,
     marginBottom: 8,
   },
   resultValue: {
     fontWeight: "500",
+    color: "#007AFF",
   },
   saveButton: {
     backgroundColor: "#34C759",
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveButtonText: {
     color: "white",
@@ -527,35 +533,71 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "rgba(0,0,0,0.1)",
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
     marginTop: 16,
   },
   closeButtonText: {
     fontSize: 16,
     color: "#666",
+    fontWeight: "500",
+  },
+  savedRatioCard: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 12,
+    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.04)",
+  },
+  savedRatioHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    paddingRight: 40,
+  },
+  savedRatioCrop: {
+    fontWeight: "600",
+    fontSize: 16,
+    color: "#1a1a1a",
+  },
+  savedRatioDate: {
+    color: "#666",
+    fontSize: 14,
+  },
+  savedRatioArea: {
+    marginBottom: 8,
+    color: "#444",
+  },
+  savedRatioValues: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(0,0,0,0.02)",
+    padding: 10,
+    borderRadius: 8,
+  },
+  noRatiosText: {
+    textAlign: "center",
+    color: "#666",
+    fontStyle: "italic",
+    padding: 20,
   },
   deleteButton: {
     position: "absolute",
-    right: 12,
-    top: 12,
-  },
-  savedRatiosButton: {
-    backgroundColor: "#34C759",
-    padding: 12,
-    borderRadius: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  savedRatiosButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
+    right: 16,
+    top: 16,
+    padding: 4,
   },
 });
 

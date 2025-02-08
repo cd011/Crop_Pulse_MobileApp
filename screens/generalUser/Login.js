@@ -5,14 +5,20 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
+  Animated,
   Alert,
 } from "react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import { auth, db } from "../../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import Checkbox from "expo-checkbox";
+import { Colors, Typography, GlobalStyles } from "../globalStyles"; // Import global styles
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -20,6 +26,17 @@ const Login = ({ navigation }) => {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isValid, setIsValid] = useState(false);
+
+  const logoScale = new Animated.Value(0.8);
+
+  useEffect(() => {
+    Animated.spring(logoScale, {
+      toValue: 1,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     // Load last used email
@@ -69,6 +86,36 @@ const Login = ({ navigation }) => {
       );
       const user = userCredential.user;
 
+      // Check if email is verified
+      if (!user.emailVerified) {
+        Alert.alert(
+          "Email Not Verified",
+          "Please verify your email before logging in. Would you like us to send another verification email?",
+          [
+            {
+              text: "Yes",
+              onPress: async () => {
+                try {
+                  await sendEmailVerification(user);
+                  Alert.alert(
+                    "Verification Email Sent",
+                    "Please check your email and verify your account."
+                  );
+                } catch (error) {
+                  Alert.alert("Error", "Failed to send verification email");
+                }
+              },
+            },
+            {
+              text: "No",
+              style: "cancel",
+            },
+          ]
+        );
+        await auth.signOut();
+        return;
+      }
+
       // Save email for future use
       await AsyncStorage.setItem("lastUsedEmail", email);
 
@@ -80,6 +127,11 @@ const Login = ({ navigation }) => {
       // Check if user is a general user
       const userDoc = await getDoc(doc(db, "generalUsers", user.uid));
       if (userDoc.exists() && userDoc.data().userType === "general") {
+        // Update emailVerified status in Firestore
+        await updateDoc(doc(db, "generalUsers", user.uid), {
+          emailVerified: true,
+        });
+
         // Check if profile is complete
         if (
           !userDoc.data().name ||
@@ -107,6 +159,16 @@ const Login = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <Animated.View
+        style={[styles.logoContainer, { transform: [{ scale: logoScale }] }]}
+      >
+        <Image
+          source={require("../../assets/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.appName}>CropPulse</Text>
+      </Animated.View>
       <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
@@ -139,7 +201,7 @@ const Login = ({ navigation }) => {
         <Checkbox
           value={keepLoggedIn}
           onValueChange={setKeepLoggedIn}
-          color={keepLoggedIn ? "#007AFF" : undefined}
+          color={keepLoggedIn ? Colors.primary : undefined}
         />
         <Text style={styles.checkboxLabel}>Keep me logged in</Text>
       </View>
@@ -158,60 +220,93 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    padding: 20,
+    padding: 24,
+    backgroundColor: Colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    ...Typography.h2,
     marginBottom: 20,
-    textAlign: "center",
   },
   input: {
-    height: 40,
-    borderColor: "gray",
+    height: 48,
+    borderColor: Colors.primaryLight,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingLeft: 8,
-    borderRadius: 5,
+    marginBottom: 16,
+    paddingLeft: 12,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderColor: "gray",
+    borderColor: Colors.primaryLight,
     borderWidth: 1,
-    marginBottom: 12,
-    borderRadius: 5,
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
   },
   passwordInput: {
     flex: 1,
-    height: 40,
-    paddingLeft: 8,
+    height: 48,
+    paddingLeft: 12,
   },
   eyeIcon: {
-    padding: 10,
+    padding: 12,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  buttonText: {
+    ...Typography.button,
   },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   checkboxLabel: {
+    ...Typography.caption,
     marginLeft: 8,
   },
-  button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: Colors.primaryLight,
+  },
+  errorText: {
+    ...Typography.caption,
+    color: Colors.error,
+    marginBottom: 16,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 10,
+    borderRadius: 60,
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#1B5E20",
+    letterSpacing: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 });
 

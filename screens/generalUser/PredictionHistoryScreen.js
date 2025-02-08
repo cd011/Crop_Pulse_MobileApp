@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  RefreshControl, // Import RefreshControl
 } from "react-native";
 import {
   collection,
@@ -21,6 +22,8 @@ import {
 import { auth, db } from "../../firebase";
 import { useNavigation } from "@react-navigation/native";
 import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
+import { Colors, Typography, GlobalStyles } from "../globalStyles"; // Import global styles
+import { Ionicons } from "@expo/vector-icons";
 
 const PredictionHistoryScreen = () => {
   const [predictions, setPredictions] = useState([]);
@@ -29,6 +32,7 @@ const PredictionHistoryScreen = () => {
   const [treatments, setTreatments] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false); // State for refresh control
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -91,6 +95,7 @@ const PredictionHistoryScreen = () => {
       Alert.alert("Error", "Failed to load prediction history");
     } finally {
       setLoading(false);
+      setIsRefreshing(false); // Set refreshing state to false after data is fetched
     }
   };
 
@@ -169,6 +174,11 @@ const PredictionHistoryScreen = () => {
     </TouchableOpacity>
   );
 
+  const onRefresh = () => {
+    setIsRefreshing(true); // Set refreshing to true when user pulls to refresh
+    fetchPredictionHistory(); // Fetch the data again
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -190,11 +200,17 @@ const PredictionHistoryScreen = () => {
           renderItem={renderPredictionItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing} // Bind refreshing state to the RefreshControl
+              onRefresh={onRefresh} // Set the function to call on pull to refresh
+            />
+          }
         />
       )}
 
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={isModalVisible}
         onRequestClose={() => setIsModalVisible(false)}
@@ -249,16 +265,22 @@ const PredictionHistoryScreen = () => {
 
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={[styles.modalButton, styles.chatbotButton]}
                     onPress={handleAskChatbotForPrediction}
                   >
+                    <Ionicons
+                      name="chatbubbles-outline"
+                      size={20}
+                      color="white"
+                    />
                     <Text style={styles.buttonText}>Ask Chatbot</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={[styles.modalButton, styles.communityButton]}
                     onPress={handleAskCommunityForPrediction}
                   >
+                    <Ionicons name="people-outline" size={20} color="white" />
                     <Text style={styles.buttonText}>Ask Community</Text>
                   </TouchableOpacity>
                 </View>
@@ -281,7 +303,8 @@ const PredictionHistoryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: Colors.background,
+    padding: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -289,9 +312,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
+    ...Typography.body,
     marginTop: 10,
-    fontSize: 16,
-    color: "#666",
+    color: Colors.text,
   },
   emptyContainer: {
     flex: 1,
@@ -299,22 +322,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    fontSize: 16,
-    color: "#666",
+    ...Typography.body,
+    color: Colors.text,
   },
   listContainer: {
     padding: 10,
   },
   predictionItem: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
+    backgroundColor: Colors.white,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   plantType: {
     fontSize: 16,
@@ -337,39 +360,53 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    width: "90%",
-    maxHeight: "80%",
     backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
+    width: "85%",
+    maxHeight: "80%",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalTitle: {
     fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 15,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#1a1a1a",
+    letterSpacing: -0.5,
   },
   scrollContainer: {
     width: "100%",
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 24,
     width: "100%",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: "#1a1a1a",
+    letterSpacing: -0.5,
   },
   predictionText: {
     fontSize: 16,
     marginBottom: 5,
   },
   followUpItem: {
-    marginBottom: 10,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: "rgba(0,0,0,0.02)",
+    borderRadius: 8,
   },
   questionText: {
     fontSize: 14,
@@ -380,9 +417,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   treatmentText: {
-    fontSize: 14,
-    marginBottom: 5,
-    paddingLeft: 10,
+    marginBottom: 8,
+    paddingLeft: 12,
+    color: "#444",
+    lineHeight: 20,
   },
   buttonContainer: {
     flexDirection: "row",
@@ -404,8 +442,30 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
+    marginLeft: 8,
+    fontWeight: "600",
+  },
+  modalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 12,
+    width: "45%",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  chatbotButton: {
+    backgroundColor: "#34C759",
+  },
+  communityButton: {
+    backgroundColor: "#007AFF",
   },
 });
 

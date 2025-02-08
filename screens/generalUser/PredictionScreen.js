@@ -21,6 +21,7 @@ import { auth, db } from "../../firebase";
 import Checkbox from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
 import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
+import { Colors, Typography, GlobalStyles } from "../globalStyles"; // Import global styles
 
 const MAX_IMAGE_SIZE = 1024 * 1024;
 
@@ -34,7 +35,7 @@ const PredictionScreen = () => {
   const [showTreatments, setShowTreatments] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const [plantType, setPlantType] = useState(null);
+  const [plantType, setPlantType] = useState("apple");
 
   const resetForm = () => {
     setImage(null);
@@ -43,7 +44,7 @@ const PredictionScreen = () => {
     setFollowUpAnswers({});
     setTreatments([]);
     setShowTreatments(false);
-    setPlantType(null);
+    setPlantType("apple");
   };
 
   const compressImage = async (uri) => {
@@ -386,9 +387,10 @@ const PredictionScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.historyButton}
-        onPress={() => navigation.navigate("PredictionHistory")}
+        onPress={() => navigation.navigate("Prediction History")}
       >
-        <Ionicons name="time-outline" size={24} color="#007AFF" />
+        <Ionicons name="time-outline" size={24} color={Colors.primary} />
+        <Text>History</Text>
       </TouchableOpacity>
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Select Plant Type:</Text>
@@ -421,7 +423,7 @@ const PredictionScreen = () => {
         <Text style={styles.buttonText}>Predict Disease</Text>
       </TouchableOpacity>
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={isDialogVisible}
         onRequestClose={() => setIsDialogVisible(false)}
@@ -470,7 +472,8 @@ const PredictionScreen = () => {
                   >
                     <Text style={styles.modalButtonText}>Ask Community</Text>
                   </TouchableOpacity>
-
+                </View>
+                <View style={styles.modalButtonContainer2}>
                   <TouchableOpacity
                     style={[
                       styles.modalButton,
@@ -526,121 +529,179 @@ const PredictionScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // Main container styles
   container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    padding: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
   },
+  loadingText: {
+    ...Typography.body,
+    marginTop: 10,
+    color: Colors.text,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    ...Typography.body,
+    color: Colors.text,
+  },
+  listContainer: {
+    padding: 10,
+  },
+
+  // Prediction Item Card
+  predictionItem: {
+    backgroundColor: Colors.white,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  plantType: {
+    ...Typography.h2,
+    marginBottom: 8,
+  },
+  disease: {
+    ...Typography.body,
+    marginBottom: 4,
+  },
+  confidence: {
+    ...Typography.body,
+    marginBottom: 4,
+  },
+  date: {
+    ...Typography.caption,
+  },
+
+  // Plant Type Picker
   pickerContainer: {
-    width: "80%",
+    width: "100%",
     marginBottom: 20,
   },
   pickerWrapper: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 10,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
   },
   label: {
-    fontSize: 16,
-    marginBottom: 5,
+    ...Typography.body,
+    marginBottom: 8,
   },
   picker: {
     width: "100%",
-    height: 50,
+    height: 60,
   },
+
+  // Image Upload Section
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    ...Typography.h1,
     marginBottom: 20,
   },
   subtitle: {
-    fontSize: 18,
+    ...Typography.h2,
     marginBottom: 30,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 12,
     width: "80%",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 16,
+    elevation: 3,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    ...Typography.button,
   },
   image: {
     width: 200,
     height: 200,
     marginVertical: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.primaryLight,
   },
-  predictionContainer: {
-    marginTop: 20,
-    alignItems: "center",
+
+  // History Button
+  historyButton: {
+    position: "absolute",
+    flexDirection: "row",
+    top: 10,
+    right: 10,
+    padding: 12,
+    borderRadius: 24,
+    backgroundColor: Colors.white,
+    elevation: 4,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    zIndex: 1,
   },
-  predictionText: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
+
+  // Modal Styles
   modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 16,
   },
   modalContent: {
     width: "90%",
-    backgroundColor: "white",
+    backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 5,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
   },
+  scrollContainer: {
+    width: "100%",
+  },
+  section: {
+    marginBottom: 24,
+    width: "100%",
+  },
+  sectionTitle: {
+    ...Typography.h2,
+    marginBottom: 12,
+  },
   predictionText: {
-    fontSize: 18,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalButtonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 15,
-  },
-  modalButton: {
-    backgroundColor: "#007AFF",
-    padding: 10,
-    borderRadius: 10,
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: "red",
-  },
-  modalButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  followUpTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 15,
+    fontSize: 15,
     marginBottom: 10,
   },
+
+  // Follow-up Questions
   followUpContainer: {
-    maxHeight: 200,
     width: "100%",
   },
   checkboxContainer: {
@@ -659,16 +720,14 @@ const styles = StyleSheet.create({
   questionText: {
     flex: 1,
   },
-  disabledButton: {
-    backgroundColor: "#cccccc",
-    opacity: 0.7,
+  followUpItem: {
+    marginBottom: 12,
   },
-  treatmentsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 15,
-    marginBottom: 10,
+  answerText: {
+    ...Typography.body,
   },
+
+  // Treatment Section
   treatmentsContainer: {
     maxHeight: 300,
     width: "100%",
@@ -679,12 +738,80 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 10,
   },
-  historyButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    padding: 10,
-    zIndex: 1,
+  treatmentsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 15,
+    marginBottom: 10,
+  },
+
+  // Button Container and Action Buttons
+  buttonContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  modalButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    marginTop: 16,
+  },
+  modalButtonContainer2: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
+  modalButton: {
+    flexDirection: "row",
+    marginRight: 4,
+    marginLeft: 4,
+    backgroundColor: Colors.primary,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  actionButton: {
+    backgroundColor: Colors.primary,
+    padding: 12,
+    borderRadius: 12,
+    minWidth: 120,
+    alignItems: "center",
+    marginHorizontal: 4,
+    marginBottom: 8,
+  },
+  cancelButton: {
+    backgroundColor: Colors.error,
+  },
+  closeButton: {
+    backgroundColor: Colors.error,
+    marginTop: 12,
+    width: "100%",
+  },
+  modalButtonText: {
+    color: "white",
+    marginLeft: 8,
+    fontWeight: "600",
+  },
+  disabledButton: {
+    backgroundColor: Colors.primaryLight,
+    opacity: 0.7,
+  },
+
+  // Prediction Results
+  predictionContainer: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  followUpTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginTop: 15,
+    marginBottom: 10,
   },
 });
 

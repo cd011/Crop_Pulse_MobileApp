@@ -10,6 +10,7 @@ import {
 import { auth, db } from "../../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import * as Location from "expo-location";
+import { Colors, Typography, GlobalStyles } from "../globalStyles"; // Import global styles
 
 const CompleteProfile = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -97,54 +98,50 @@ const CompleteProfile = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     justifyContent: "center",
+    padding: 24,
+    backgroundColor: Colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    ...Typography.h2,
     marginBottom: 10,
-    textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
-    color: "gray",
+    ...Typography.caption,
     marginBottom: 20,
-    textAlign: "center",
   },
   input: {
-    height: 40,
-    borderColor: "gray",
+    height: 48,
+    borderColor: Colors.primaryLight,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingLeft: 8,
-    borderRadius: 5,
+    marginBottom: 16,
+    paddingLeft: 12,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 8,
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 16,
+  },
+  buttonText: {
+    ...Typography.button,
+  },
+  locationText: {
+    ...Typography.caption,
+    marginVertical: 10,
   },
   submitButton: {
-    backgroundColor: "#28a745",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: Colors.success,
+    padding: 16,
+    borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
   },
-  buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  locationText: {
-    textAlign: "center",
-    marginVertical: 10,
-  },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: Colors.primaryLight,
   },
 });
 

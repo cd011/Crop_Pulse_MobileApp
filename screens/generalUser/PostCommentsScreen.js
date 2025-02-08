@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,16 +7,21 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
 
 const PostCommentsScreen = ({ route }) => {
   const { postId } = route.params;
   const [post, setPost] = useState(null);
   const [newComment, setNewComment] = useState("");
   const [userName, setUserName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -52,6 +57,10 @@ const PostCommentsScreen = ({ route }) => {
     }
 
     try {
+      setIsLoading(true); // Start loading
+      Keyboard.dismiss(); // Dismiss keyboard
+      inputRef.current?.blur();
+
       const comment = {
         content: newComment,
         authorId: auth.currentUser.uid,
@@ -72,6 +81,8 @@ const PostCommentsScreen = ({ route }) => {
     } catch (error) {
       console.error("Error adding comment:", error);
       Alert.alert("Error", "Failed to add comment");
+    } finally {
+      setIsLoading(false); // Stop loading regardless of outcome
     }
   };
 
@@ -171,58 +182,76 @@ const PostCommentsScreen = ({ route }) => {
   };
 
   const renderComment = ({ item, index }) => (
-    <View style={styles.commentContainer}>
+    <View
+      style={[
+        styles.commentContainer,
+        item.isAIResponse && styles.aiCommentContainer,
+      ]}
+    >
       <Text style={styles.commentContent}>{item.content}</Text>
-      <Text style={styles.commentAuthor}>Posted by: {item.authorName}</Text>
-      <View style={styles.interactionContainer}>
-        <TouchableOpacity
-          style={styles.interactionButton}
-          onPress={() => handleLikeComment(index)}
-        >
-          <Ionicons
-            name={
-              item.likes?.includes(auth.currentUser.uid)
-                ? "heart"
-                : "heart-outline"
-            }
-            size={20}
-            color={
-              item.likes?.includes(auth.currentUser.uid) ? "#FF6B6B" : "#666"
-            }
-          />
-          <Text style={styles.interactionCount}>{item.likes?.length || 0}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.interactionButton}
-          onPress={() => handleDislikeComment(index)}
-        >
-          <Ionicons
-            name={
-              item.dislikes?.includes(auth.currentUser.uid)
-                ? "thumbs-down"
-                : "thumbs-down-outline"
-            }
-            size={20}
-            color={
-              item.dislikes?.includes(auth.currentUser.uid) ? "#4A90E2" : "#666"
-            }
-          />
-          <Text style={styles.interactionCount}>
-            {item.dislikes?.length || 0}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Delete button - only shown for the author */}
-        {item.authorId === auth.currentUser.uid && (
+      <Text
+        style={[
+          styles.commentAuthor,
+          item.isAIResponse && styles.aiCommentAuthor,
+        ]}
+      >
+        Posted by: {item.authorName}
+      </Text>
+      {!item.isAIResponse && (
+        <View style={styles.interactionContainer}>
           <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteComment(index, item.authorId)}
+            style={styles.interactionButton}
+            onPress={() => handleLikeComment(index)}
           >
-            <Ionicons name="trash-outline" size={20} color="#FF4444" />
+            <Ionicons
+              name={
+                item.likes?.includes(auth.currentUser.uid)
+                  ? "heart"
+                  : "heart-outline"
+              }
+              size={20}
+              color={
+                item.likes?.includes(auth.currentUser.uid) ? "#FF6B6B" : "#666"
+              }
+            />
+            <Text style={styles.interactionCount}>
+              {item.likes?.length || 0}
+            </Text>
           </TouchableOpacity>
-        )}
-      </View>
+
+          <TouchableOpacity
+            style={styles.interactionButton}
+            onPress={() => handleDislikeComment(index)}
+          >
+            <Ionicons
+              name={
+                item.dislikes?.includes(auth.currentUser.uid)
+                  ? "thumbs-down"
+                  : "thumbs-down-outline"
+              }
+              size={20}
+              color={
+                item.dislikes?.includes(auth.currentUser.uid)
+                  ? "#4A90E2"
+                  : "#666"
+              }
+            />
+            <Text style={styles.interactionCount}>
+              {item.dislikes?.length || 0}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Delete button - only shown for the author */}
+          {item.authorId === auth.currentUser.uid && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDeleteComment(index, item.authorId)}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF4444" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 
@@ -236,29 +265,40 @@ const PostCommentsScreen = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.postContainer}>
-        <Text style={styles.postContent}>{post.content}</Text>
-        <View style={styles.tagContainer}>
-          <Text style={styles.tagText}>{post.tag}</Text>
-        </View>
-        <Text style={styles.postAuthor}>Posted by: {post.authorName}</Text>
-      </View>
       <FlatList
         data={post.comments}
         renderItem={renderComment}
         keyExtractor={(item, index) => index.toString()}
         style={styles.commentList}
+        ListHeaderComponent={() => (
+          <View style={styles.postContainer}>
+            <Text style={styles.postContent}>{post.content}</Text>
+            <View style={styles.tagContainer}>
+              <Text style={styles.tagText}>{post.tag}</Text>
+            </View>
+            <Text style={styles.postAuthor}>Posted by: {post.authorName}</Text>
+          </View>
+        )}
       />
       <View style={styles.inputContainer}>
         <TextInput
+          ref={inputRef}
           style={styles.input}
           value={newComment}
           onChangeText={setNewComment}
           placeholder="Add a comment..."
           multiline
         />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddComment}>
-          <Text style={styles.addButtonText}>Post</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={handleAddComment}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.addButtonText}>Post</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -268,6 +308,7 @@ const PostCommentsScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
     padding: 10,
   },
   postContainer: {
@@ -282,7 +323,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   tagContainer: {
-    backgroundColor: "#e8f4f8",
+    backgroundColor: Colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -290,7 +331,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   tagText: {
-    color: "#2c88d9",
+    color: Colors.primary,
     fontSize: 12,
   },
   postAuthor: {
@@ -299,6 +340,7 @@ const styles = StyleSheet.create({
   },
   commentList: {
     flex: 1,
+    marginBottom: 50,
   },
   commentContainer: {
     backgroundColor: "#f0f0f0",
@@ -337,6 +379,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 10,
     backgroundColor: "#f0f0f0",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   input: {
     flex: 1,
@@ -346,13 +392,25 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     borderRadius: 20,
     padding: 10,
     justifyContent: "center",
   },
+  addButtonDisabled: {
+    opacity: 0.7,
+  },
   addButtonText: {
     color: "#fff",
+    fontWeight: "bold",
+  },
+  aiCommentContainer: {
+    backgroundColor: Colors.primaryLight, // Light blue background
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+  },
+  aiCommentAuthor: {
+    color: Colors.primary,
     fontWeight: "bold",
   },
 });

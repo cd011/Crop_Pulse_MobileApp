@@ -7,11 +7,127 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { auth, db } from "../../firebase";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { signOut, deleteUser } from "firebase/auth";
+import {
+  signOut,
+  deleteUser,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "firebase/auth";
 import * as Location from "expo-location";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors, Typography, GlobalStyles } from "../globalStyles";
+
+const PasswordChangeModal = ({
+  visible,
+  onClose,
+  onSubmit,
+  passwordData,
+  setPasswordData,
+}) => {
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  return (
+    <Modal visible={visible} transparent={true} animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Change Password</Text>
+
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Current Password"
+              value={passwordData.currentPassword}
+              onChangeText={(text) =>
+                setPasswordData((prev) => ({ ...prev, currentPassword: text }))
+              }
+              secureTextEntry={!showCurrentPassword}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+            >
+              <Ionicons
+                name={showCurrentPassword ? "eye-off-outline" : "eye-outline"}
+                size={24}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="New Password"
+              value={passwordData.newPassword}
+              onChangeText={(text) =>
+                setPasswordData((prev) => ({ ...prev, newPassword: text }))
+              }
+              secureTextEntry={!showNewPassword}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowNewPassword(!showNewPassword)}
+            >
+              <Ionicons
+                name={showNewPassword ? "eye-off-outline" : "eye-outline"}
+                size={24}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Confirm New Password"
+              value={passwordData.confirmNewPassword}
+              onChangeText={(text) =>
+                setPasswordData((prev) => ({
+                  ...prev,
+                  confirmNewPassword: text,
+                }))
+              }
+              secureTextEntry={!showConfirmPassword}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              <Ionicons
+                name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                size={24}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={onSubmit}
+            >
+              <Text style={styles.buttonText}>Change Password</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={onClose}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 const UserProfileScreen = ({ navigation }) => {
   const [profile, setProfile] = useState({
@@ -21,6 +137,12 @@ const UserProfileScreen = ({ navigation }) => {
     plantTypes: "",
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
 
   useEffect(() => {
     fetchUserProfile();
@@ -41,6 +163,45 @@ const UserProfileScreen = ({ navigation }) => {
         });
       }
     }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      Alert.alert("Error", "New passwords don't match");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      Alert.alert("Error", "New password must be at least 8 characters long");
+      return;
+    }
+
+    const user = auth.currentUser;
+    try {
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        passwordData.currentPassword
+      );
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, passwordData.newPassword);
+      Alert.alert("Success", "Password updated successfully");
+      handleClosePasswordModal();
+    } catch (error) {
+      if (error.code === "auth/wrong-password") {
+        Alert.alert("Error", "Current password is incorrect");
+      } else {
+        Alert.alert("Error", "Failed to update password");
+      }
+    }
+  };
+
+  const handleClosePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    });
   };
 
   const handleUpdateProfile = async () => {
@@ -84,13 +245,8 @@ const UserProfileScreen = ({ navigation }) => {
             const user = auth.currentUser;
             if (user) {
               try {
-                // Delete Firestore document first
                 await deleteDoc(doc(db, "generalUsers", user.uid));
-
-                // Adding a small delay before deleting the user
                 await new Promise((resolve) => setTimeout(resolve, 500));
-
-                // Now delete the user account
                 await deleteUser(user);
                 navigation.reset({
                   index: 0,
@@ -128,7 +284,7 @@ const UserProfileScreen = ({ navigation }) => {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>User Profile</Text>
       <View style={styles.profileInfo}>
-        <Text>Email: {profile.email}</Text>
+        <Text style={styles.label}>Email: {profile.email}</Text>
         {isEditing ? (
           <>
             <TextInput
@@ -139,8 +295,10 @@ const UserProfileScreen = ({ navigation }) => {
               }
               placeholder="Name"
             />
-            <Button title="Get Current Location" onPress={handleGetLocation} />
-            <Text>
+            <TouchableOpacity style={styles.button} onPress={handleGetLocation}>
+              <Text style={styles.buttonText}>Get Current Location</Text>
+            </TouchableOpacity>
+            <Text style={styles.label}>
               Latitude: {profile.location.latitude}, Longitude:{" "}
               {profile.location.longitude}
             </Text>
@@ -152,29 +310,60 @@ const UserProfileScreen = ({ navigation }) => {
               }
               placeholder="Plant Types (comma separated)"
             />
-            <Button title="Save Changes" onPress={handleUpdateProfile} />
-            <Button title="Cancel" onPress={() => setIsEditing(false)} />
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={handleUpdateProfile}
+            >
+              <Text style={styles.buttonText}>Save Changes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={() => setIsEditing(false)}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
           </>
         ) : (
           <>
-            <Text>Name: {profile.name}</Text>
-            <Text>
+            <Text style={styles.label}>Name: {profile.name}</Text>
+            <Text style={styles.label}>
               Location: {profile.location.latitude},{" "}
               {profile.location.longitude}
             </Text>
-            <Text>Plant Types: {profile.plantTypes}</Text>
-            <Button title="Edit Profile" onPress={() => setIsEditing(true)} />
+            <Text style={styles.label}>Plant Types: {profile.plantTypes}</Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => setIsEditing(true)}
+            >
+              <Text style={styles.buttonText}>Edit Profile</Text>
+            </TouchableOpacity>
           </>
         )}
       </View>
       <View style={styles.buttonContainer}>
-        <Button title="Logout" onPress={handleLogout} />
-        <Button
-          title="Delete Account"
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => setShowPasswordModal(true)}
+        >
+          <Text style={styles.buttonText}>Change Password</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleLogout}>
+          <Text style={styles.buttonText}>Logout</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, styles.deleteButton]}
           onPress={handleDeleteAccount}
-          color="red"
-        />
+        >
+          <Text style={styles.buttonText}>Delete Account</Text>
+        </TouchableOpacity>
       </View>
+      <PasswordChangeModal
+        visible={showPasswordModal}
+        onClose={handleClosePasswordModal}
+        onSubmit={handleChangePassword}
+        passwordData={passwordData}
+        setPasswordData={setPasswordData}
+      />
     </ScrollView>
   );
 };
@@ -182,25 +371,94 @@ const UserProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 24,
+    backgroundColor: Colors.background,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
+    color: "#333",
+    textAlign: "center",
   },
   profileInfo: {
     marginBottom: 20,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#555",
+    marginBottom: 10,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
+    padding: 12,
+    marginBottom: 15,
+    borderRadius: 8,
+    backgroundColor: "#fff",
   },
   buttonContainer: {
     marginTop: 20,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  primaryButton: {
+    backgroundColor: Colors.primary,
+  },
+  secondaryButton: {
+    backgroundColor: "#6c757d",
+  },
+  deleteButton: {
+    backgroundColor: "#dc3545",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  modalContainer: {
+    backgroundColor: "#fff",
+    margin: 20,
+    padding: 20,
+    borderRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
+    color: "#333",
+  },
+  modalButtons: {
+    marginTop: 15,
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderColor: "#ddd",
+    borderWidth: 1,
+    marginBottom: 15,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+  },
+  passwordInput: {
+    flex: 1,
+    height: 40,
+    paddingLeft: 10,
+    color: "#333",
+  },
+  eyeIcon: {
+    padding: 10,
   },
 });
 
