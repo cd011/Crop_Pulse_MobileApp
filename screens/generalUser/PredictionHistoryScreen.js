@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Dimensions,
   RefreshControl, // Import RefreshControl
 } from "react-native";
 import {
@@ -24,6 +25,9 @@ import { useNavigation } from "@react-navigation/native";
 import { useCommunityAndChatbot } from "./useCommunityAndChatbot";
 import { Colors, Typography, GlobalStyles } from "../globalStyles"; // Import global styles
 import { Ionicons } from "@expo/vector-icons";
+
+const screenHeight = Dimensions.get("window").height;
+const modalHeight = screenHeight * 0.7;
 
 const PredictionHistoryScreen = () => {
   const [predictions, setPredictions] = useState([]);
@@ -365,8 +369,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 24,
     padding: 24,
-    width: "85%",
-    maxHeight: "80%",
+    width: "90%",
+    height: modalHeight,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {

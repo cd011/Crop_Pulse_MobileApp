@@ -8,6 +8,7 @@ import {
   TextInput,
   ScrollView,
   Alert,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
@@ -24,6 +25,9 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { Colors, Typography, GlobalStyles } from "../globalStyles";
+
+const screenHeight = Dimensions.get("window").height;
+const modalHeight = screenHeight * 0.7;
 
 const FertilizerCalculator = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -414,7 +418,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     width: "90%",
-    maxHeight: "85%",
+    height: modalHeight,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

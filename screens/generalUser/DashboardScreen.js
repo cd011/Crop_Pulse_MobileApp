@@ -145,7 +145,7 @@ const DashboardScreen = ({ navigation }) => {
   const fetchWeatherData = async (location) => {
     try {
       const response = await fetch(
-        `http://api.weatherapi.com/v1/forecast.json?key=${WEATHER_API_KEY}&q=${location.latitude},${location.longitude}&days=3&aqi=no`
+        `https://api.weatherapi.com/v1/forecast.json?key=${WEATHER_API_KEY}&q=${location.latitude},${location.longitude}&days=3&aqi=no`
       );
       const data = await response.json();
       setWeather(data.current);
