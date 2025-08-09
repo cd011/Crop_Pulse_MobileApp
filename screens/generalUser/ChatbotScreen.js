@@ -15,7 +15,7 @@ import Markdown from "react-native-markdown-display";
 import { Colors, Typography, GlobalStyles } from "../globalStyles";
 // import { GEMINI_API_KEY } from "@env";
 
-const API_KEY = "AIzaSyBKKMtjkrp3dJjK70_hCV21OMmXvtLqc2k";
+const API_KEY = process.env.GEMINI_API_KEY || "YOUR_GEMINI_API_KEY";
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 

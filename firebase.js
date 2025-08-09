@@ -8,13 +8,13 @@ import { getFirestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA34HLNqgnO1k5i_tSYecDiHWIW2o7Hb1k",
-  authDomain: "crop-pulse.firebaseapp.com",
-  projectId: "crop-pulse",
-  storageBucket: "crop-pulse.appspot.com",
-  messagingSenderId: "74116036120",
-  appId: "1:74116036120:web:f198fa7672269b381ef56d",
-  measurementId: "G-MRQ848TZFD",
+  apiKey: process.env.FIREBASE_API_KEY || "YOUR_FIREBASE_API_KEY",
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "YOUR_FIREBASE_AUTH_DOMAIN",
+  projectId: process.env.FIREBASE_PROJECT_ID || "YOUR_FIREBASE_PROJECT_ID",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "YOUR_FIREBASE_STORAGE_BUCKET",
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+  appId: process.env.FIREBASE_APP_ID || "YOUR_FIREBASE_APP_ID",
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID || "YOUR_FIREBASE_MEASUREMENT_ID",
 };
 
 const app = initializeApp(firebaseConfig);
