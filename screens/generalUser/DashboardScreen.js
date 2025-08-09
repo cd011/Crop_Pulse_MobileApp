@@ -98,7 +98,7 @@ const DashboardScreen = ({ navigation }) => {
   const [followUpAnswers, setFollowUpAnswers] = useState({});
   const [treatments, setTreatments] = useState([]);
 
-  const WEATHER_API_KEY = "37acc4c53c27446c904205138241610"; // Replace API key with env
+  const WEATHER_API_KEY = process.env.WEATHER_API_KEY || "YOUR_WEATHER_API_KEY"; // Replace API key with env
 
   useEffect(() => {
     fetchDashboardData();
