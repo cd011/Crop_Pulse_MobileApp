@@ -9,27 +9,32 @@ A comprehensive React Native mobile application designed to help farmers and agr
 ## 📱 Features
 
 ### 🔍 **Crop Disease Detection**
+
 - **AI-Powered Analysis**: Upload photos of your crops to get instant disease identification
 - **Multiple Plant Support**: Currently supports 9 types of plants with expandable plant type options
 - **Follow-up Questions**: Interactive questionnaire system for more accurate diagnoses
 - **Treatment Recommendations**: Get detailed treatment plans based on detected diseases
 
 ### 🌤️ **Weather Integration**
+
 - **Real-time Weather Data**: Get current weather conditions for your location
 - **Weather Forecast**: View upcoming weather predictions
 - **Location-based Services**: Automatic location detection for weather data
 
 ### 💬 **Community Features**
+
 - **Farmer Community**: Connect with other farmers and agricultural experts
 - **Discussion Forums**: Share experiences, ask questions, and get advice
 - **Post Comments**: Engage in meaningful discussions about farming practices
 
 ### 🤖 **AI Chatbot**
+
 - **24/7 Support**: Get instant answers to farming-related questions
 - **Contextual Responses**: AI-powered responses based on your specific situation
 - **Integration**: Seamlessly integrated with disease detection and community features
 
 ### 📊 **Dashboard & Analytics**
+
 - **Prediction History**: Track all your previous disease predictions
 - **User Profile**: Manage your personal information and preferences
 - **Recent Activity**: Quick access to your latest predictions and community interactions
@@ -58,12 +63,14 @@ Before running this application, make sure you have the following installed:
 ## 🚀 Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/CropPulse.git
    cd CropPulse
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    # or
@@ -71,6 +78,7 @@ Before running this application, make sure you have the following installed:
    ```
 
 3. **Set up Firebase**
+
    - Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
    - Enable Authentication and Firestore
    - Download your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
@@ -78,12 +86,14 @@ Before running this application, make sure you have the following installed:
    - Update the Firebase configuration in `firebase.js`
 
 4. **Configure Environment Variables**
+
    - Copy `env.example` to `.env`
    - Fill in your actual API keys in the `.env` file:
+
      ```bash
      # Copy the example file
      cp env.example .env
-     
+
      # Edit the .env file with your actual keys
      # Firebase Configuration
      FIREBASE_API_KEY=your_actual_firebase_api_key
@@ -93,13 +103,14 @@ Before running this application, make sure you have the following installed:
      FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
      FIREBASE_APP_ID=your_app_id
      FIREBASE_MEASUREMENT_ID=your_measurement_id
-     
+
      # Google Gemini AI
      GEMINI_API_KEY=your_actual_gemini_api_key
-     
+
      # Weather API
      WEATHER_API_KEY=your_actual_weather_api_key
      ```
+
    - **Important**: Never commit your `.env` file to version control!
 
 5. **Start the development server**
@@ -112,6 +123,7 @@ Before running this application, make sure you have the following installed:
 ## 📱 Running the App
 
 ### Development Mode
+
 ```bash
 # Start Expo development server
 expo start
@@ -127,6 +139,7 @@ expo start --web
 ```
 
 ### Building for Production
+
 ```bash
 # Build for Android
 eas build --platform android
@@ -157,7 +170,6 @@ CropPulse/
 └── README.md            # This file
 ```
 
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -168,7 +180,23 @@ CropPulse/
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+
+This license ensures that:
+
+- ✅ **Open Source**: The source code remains open and accessible
+- ✅ **Copyleft**: Any derivative works must also be open source
+- ✅ **Non-Commercial Protection**: Derivative works cannot be made proprietary
+- ✅ **Attribution**: Original authors must be credited
+
+**Key Terms:**
+
+- You can use, modify, and distribute this software
+- Any derivative works must also be licensed under GPL-3.0
+- You must include the original license and copyright notice
+- Commercial use is allowed, but derivative works must remain open source
+
+For more details, see the [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ## 🙏 Acknowledgments
 
