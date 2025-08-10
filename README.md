@@ -44,11 +44,45 @@ A comprehensive React Native mobile application designed to help farmers and agr
 - **Frontend**: React Native with Expo
 - **Navigation**: React Navigation (Native Stack & Bottom Tabs)
 - **Backend**: Firebase (Authentication, Firestore)
+- **ML Service**: [Crop_Pulse_MLService](https://github.com/cd011/Crop_Pulse_MLService) - Docker containerized plant disease detection
 - **AI Services**: Google Generative AI
 - **Image Processing**: Expo Image Picker & Image Manipulator
 - **Maps**: React Native Maps
 - **Weather API**: External weather service integration
 - **UI Components**: Custom components with global styling
+
+## 🔗 Backend Services
+
+### ML Service - Plant Disease Detection
+
+This mobile application connects to the [Crop_Pulse_MLService](https://github.com/cd011/Crop_Pulse_MLService) backend for AI-powered plant disease detection.
+
+**Backend Features:**
+- **Multi-Plant Support**: Handles multiple plant types with separate ML models
+- **TensorFlow Serving**: High-performance model inference
+- **REST API**: FastAPI-based endpoints for real-time disease classification
+- **Docker Containerization**: Easy deployment and scaling
+- **Internet Exposure**: ngrok integration for remote access
+
+**API Endpoint:**
+```
+POST /predict
+```
+
+**Parameters:**
+- `plant_type`: Type of plant to analyze
+- `file`: Image file for disease detection
+
+**Response:**
+```json
+{
+  "predicted_disease": "Disease Name",
+  "confidence": 95.67,
+  "status": "success"
+}
+```
+
+For detailed setup instructions, see the [Crop_Pulse_MLService README](https://github.com/cd011/Crop_Pulse_MLService#readme).
 
 ## 📋 Prerequisites
 
